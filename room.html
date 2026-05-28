@@ -320,8 +320,19 @@ async function leaveRoom(){
 
 // ── AUTO-FILL FROM URL ──
 const up=new URLSearchParams(location.search);
-if(up.get('room')) document.getElementById('inp-code').value=up.get('room');
-if(up.get('name')) document.getElementById('inp-name').value=up.get('name');
+const urlRoom=up.get('room');
+const urlName=up.get('name');
+if(urlRoom){
+  document.getElementById('inp-code').value=urlRoom;
+  // ซ่อน field room code ถ้ามาจากลิงก์
+  const codeField=document.getElementById('inp-code').closest('.field');
+  if(codeField){
+    codeField.style.display='none';
+  }
+  // โฟกัสที่ชื่อแทน
+  setTimeout(()=>document.getElementById('inp-name').focus(),300);
+}
+if(urlName) document.getElementById('inp-name').value=urlName;
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ไพ่ 13 ใบ — Admin</title>
+<title>3 กอง กาญ — Admin</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Teko:wght@400;500;600&display=swap');
 :root{
@@ -161,7 +161,7 @@ select.form-input option{background:#1a1a2e;}
 <!-- SIDEBAR -->
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <div class="title">🀄 ไพ่ 13 ใบ</div>
+    <div class="title">🃏 3 กอง กาญ</div>
     <div class="sub">Admin Dashboard</div>
   </div>
   <div class="nav">
@@ -224,7 +224,7 @@ select.form-input option{background:#1a1a2e;}
 
     <!-- ROOMS -->
     <div class="page" id="page-rooms">
-      <div class="room-grid" id="room-grid"></div>
+      <div id="rooms-cont"></div>
     </div>
 
     <!-- MEMBERS -->
@@ -459,7 +459,7 @@ function seed(){
     const w=eWallet();DENOMS.forEach(d=>w[d]=Math.floor(Math.random()*6));
     DB.members.push({id:gid(),name:n,pw:'1234',status:['active','active','vip','active','inactive'][i],wallet:w,gamesPlayed:Math.floor(Math.random()*20),createdAt:ts(),avatar:AVS[i],color:AVC[i]});
   });
-  DB.rooms=[{id:gid(),name:'โต๊ะ 1',status:'open',players:[DB.members[0].id,DB.members[1].id,DB.members[2].id],createdAt:ts()},{id:gid(),name:'โต๊ะ 2',status:'closed',players:[DB.members[3].id,DB.members[4].id],createdAt:ts()}];
+  DB.rooms=[];
   save();syncPlayerData();
 }
 
@@ -530,50 +530,65 @@ async function createRoom(){
   if(!DB.rooms) DB.rooms=[];
   DB.rooms.push({code,name,players:0,createdAt:Date.now()});
   save();
-  // สร้างห้องใน Firestore
   if(window.fbAdminReady){
-    await fbdb.collection('rooms').doc(code).set({code,name,status:'lobby',players:{},createdAt:Date.now()});
+    try{
+      await fbdb.collection('rooms').doc(code).set({code,name,status:'lobby',players:{},createdAt:Date.now()});
+    }catch(e){console.warn('fbCreate error',e);}
   }
   renderRooms();
-  copyRoomLink(code);
-  toast('🚪 สร้างห้อง '+code+' แล้ว! คัดลอกลิงก์แล้ว');
+  showRoomQR(code);
+  toast('🚪 สร้างห้อง '+code+' แล้ว!');
 }
 
 function copyRoomLink(code){
-  const base=location.href.replace('poker-admin.html','');
-  const link=`${base}room.html?room=${code}`;
+  const link=getRoomLink(code);
   navigator.clipboard?.writeText(link).catch(()=>{});
-  // แสดง QR Code popup
-  showRoomQR(code, link);
+  showRoomQR(code);
   toast('📋 คัดลอกลิงก์แล้ว');
 }
 
-function showRoomQR(code, link){
-  // ลบ popup เก่า
+function getRoomLink(code){
+  // ใช้ GitHub Pages URL เสมอ
+  const host='https://adirut2532-alt.github.io/poker-rut';
+  return host+'/room.html?room='+code;
+}
+
+function showRoomQR(code){
+  const link=getRoomLink(code);
   document.getElementById('qr-popup')?.remove();
   const pop=document.createElement('div');
   pop.id='qr-popup';
   pop.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(link);
   pop.innerHTML=`
-    <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:320px;text-align:center;">
+    <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:320px;text-align:center;font-family:'Kanit',sans-serif;">
       <div style="font-size:18px;font-weight:900;color:#b85e00;margin-bottom:4px">🚪 ห้อง ${code}</div>
       <div style="font-size:12px;color:#7a4a18;margin-bottom:16px">ส่งลิงก์หรือ QR Code ให้เพื่อนสแกนเลยครับ</div>
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}"
-        style="width:200px;height:200px;border-radius:12px;border:1px solid rgba(150,80,0,.15);">
-      <div style="margin-top:12px;padding:8px 12px;background:#fff3e0;border-radius:8px;font-size:11px;word-break:break-all;color:#7a4a18">${link}</div>
+      <img src="${qrUrl}" width="200" height="200"
+        style="border-radius:12px;border:1px solid rgba(150,80,0,.15);display:block;margin:0 auto;">
+      <div style="margin-top:12px;padding:8px 12px;background:#fff3e0;border-radius:8px;font-size:11px;word-break:break-all;color:#7a4a18;text-align:left">${link}</div>
       <div style="display:flex;gap:8px;margin-top:14px;">
-        <button onclick="navigator.share?.({url:'${link}',title:'3 กอง กาญ - ห้อง ${code}'})||navigator.clipboard?.writeText('${link}')"
-          style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(160deg,#e08000,#b05800);color:#fff;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+        <button onclick="shareRoom('${link}','${code}')"
+          style="flex:1;padding:12px;border:none;border-radius:10px;background:linear-gradient(160deg,#e08000,#b05800);color:#fff;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">
           📤 แชร์
         </button>
         <button onclick="document.getElementById('qr-popup').remove()"
-          style="flex:1;padding:10px;border:1px solid rgba(150,80,0,.2);border-radius:10px;background:#f5f0e8;color:#5a3818;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+          style="flex:1;padding:12px;border:1px solid rgba(150,80,0,.2);border-radius:10px;background:#f5f0e8;color:#5a3818;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">
           ✕ ปิด
         </button>
       </div>
     </div>`;
   document.body.appendChild(pop);
-  pop.addEventListener('click', e=>{ if(e.target===pop) pop.remove(); });
+  pop.addEventListener('click',e=>{if(e.target===pop)pop.remove();});
+}
+
+function shareRoom(link,code){
+  if(navigator.share){
+    navigator.share({title:'3 กอง กาญ — ห้อง '+code,text:'เข้าร่วมห้องเกม '+code,url:link});
+  } else {
+    navigator.clipboard?.writeText(link);
+    toast('📋 คัดลอกลิงก์แล้ว');
+  }
 }
 
 function deleteRoom(i){
