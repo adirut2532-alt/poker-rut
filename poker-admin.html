@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ไพ่ 13 ใบ — Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Teko:wght@400;500;600&display=swap');
+:root{
+  --bg:#0d0d14;--panel:#16162a;--panel2:#1e1e38;
+  --gold:#f0c040;--teal:#00d4aa;--red:#ff4560;--green:#00e396;
+  --blue:#008ffb;--purple:#775dd0;--orange:#feb019;
+  --text:#e8e8f0;--muted:#6868a0;--border:rgba(255,255,255,.07);
+  --chip5:#f0f0f0;--chip10:#e83030;--chip20:#2060e0;
+  --chip50:#10a040;--chip100:#222;--chip500:#9020c0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+.app{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:50;transition:transform .25s;}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);}
+.sidebar-logo .title{font-family:'Teko',sans-serif;font-size:22px;font-weight:600;background:linear-gradient(135deg,#f0c040,#ff8020);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sidebar-logo .sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.nav{flex:1;padding:10px 0;overflow-y:auto;}
+.nav-sec{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1.5px;padding:10px 16px 3px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted);border-left:3px solid transparent;}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text);}
+.nav-item.active{background:rgba(0,212,170,.08);color:var(--teal);border-left-color:var(--teal);}
+.nav-item .ic{font-size:16px;width:20px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
+.sidebar-foot{padding:12px 16px;border-top:1px solid var(--border);}
+.admin-tag{display:flex;align-items:center;gap:8px;background:rgba(240,192,64,.1);border-radius:8px;padding:8px 10px;border:1px solid rgba(240,192,64,.2);}
+.admin-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--panel);border-bottom:1px solid var(--border);padding:11px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;}
+.topbar-title{font-family:'Teko',sans-serif;font-size:22px;font-weight:500;letter-spacing:.5px;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border:none;border-radius:10px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .12s;}
+.btn:active{transform:scale(.96);}
+.btn-teal{background:linear-gradient(135deg,#00d4aa,#008870);color:#001a14;box-shadow:0 3px 10px rgba(0,212,170,.25);}
+.btn-gold{background:linear-gradient(135deg,#f0c040,#c89010);color:#1a0a00;box-shadow:0 3px 10px rgba(240,192,64,.25);}
+.btn-red{background:linear-gradient(135deg,#ff4560,#c01030);color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);}
+.btn-purple{background:linear-gradient(135deg,#a060f0,#6020b0);color:#fff;}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:8px;}
+
+/* CONTENT */
+.content{padding:20px;flex:1;}
+.page{display:none;}.page.active{display:block;}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--panel2);border-radius:12px;padding:14px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:-15px;right:-15px;width:60px;height:60px;border-radius:50%;background:var(--acc,rgba(0,212,170,.1));filter:blur(12px);pointer-events:none;}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px;margin-bottom:4px;}
+.stat-val{font-family:'Teko',sans-serif;font-size:30px;font-weight:600;line-height:1;}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.stat-ic{position:absolute;top:12px;right:12px;font-size:20px;opacity:.55;}
+
+/* TABLE */
+.tbl-wrap{background:var(--panel2);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px;}
+.tbl-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.tbl-title{font-size:14px;font-weight:700;}
+.tbl-search{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:6px 11px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;width:190px;outline:none;}
+.tbl-search:focus{border-color:var(--teal);}
+table{width:100%;border-collapse:collapse;}
+th{padding:9px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.03);}
+tr:hover td{background:rgba(255,255,255,.02);}
+tr:last-child td{border-bottom:none;}
+.ovx{overflow-x:auto;}
+
+/* AVATAR */
+.av{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.name-cell{display:flex;align-items:center;gap:8px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge::before{content:'●';font-size:7px;}
+.b-green{background:rgba(0,227,150,.12);color:var(--green);border:1px solid rgba(0,227,150,.18);}
+.b-red{background:rgba(255,69,96,.12);color:var(--red);border:1px solid rgba(255,69,96,.18);}
+.b-gold{background:rgba(240,192,64,.12);color:var(--gold);border:1px solid rgba(240,192,64,.18);}
+.b-blue{background:rgba(0,143,251,.12);color:var(--blue);border:1px solid rgba(0,143,251,.18);}
+
+/* CHIP VIS */
+.chip-vis{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:13px;font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2);border:3px dashed rgba(255,255,255,.3);flex-shrink:0;}
+.chip-vis::after{content:'';position:absolute;inset:4px;border-radius:50%;background:rgba(255,255,255,.07);}
+.c5{background:var(--chip5);color:#222;}.c10{background:var(--chip10);color:#fff;}.c20{background:var(--chip20);color:#fff;}
+.c50{background:var(--chip50);color:#fff;}.c100{background:var(--chip100);color:#fff;border-color:rgba(255,255,255,.35);}.c500{background:var(--chip500);color:#fff;}
+
+.chip-dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px dashed rgba(255,255,255,.35);flex-shrink:0;}
+.chip-mini{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;margin-right:4px;}
+
+/* CHIP CARD */
+.chips-ov{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+.chip-card{background:var(--panel2);border-radius:12px;padding:12px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;min-width:130px;position:relative;}
+
+/* BAR CHART */
+.bar-chart{display:flex;flex-direction:column;gap:7px;margin-top:10px;}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-lbl{font-size:11px;color:var(--muted);width:70px;flex-shrink:0;text-align:right;}
+.bar-track{flex:1;height:16px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s;}
+.bar-val{font-size:12px;font-weight:700;width:44px;text-align:right;}
+
+/* HIST OP */
+.hop{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;}
+.hop-add{background:rgba(0,227,150,.12);color:var(--green);}
+.hop-sub{background:rgba(255,69,96,.12);color:var(--red);}
+.hop-set{background:rgba(0,143,251,.12);color:var(--blue);}
+.hop-game{background:rgba(119,93,208,.12);color:var(--purple);}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:200;padding:16px;backdrop-filter:blur(4px);}
+.overlay.open{display:flex;}
+.modal{background:var(--panel2);border-radius:18px;padding:22px;width:100%;max-width:420px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.7);max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:'Teko',sans-serif;font-size:24px;font-weight:500;color:var(--gold);margin-bottom:16px;}
+.form-row{margin-bottom:12px;}
+.form-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:4px;display:block;}
+.form-input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;padding:9px 13px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;transition:border-color .15s;}
+.form-input:focus{border-color:var(--teal);}
+select.form-input option{background:#1a1a2e;}
+.modal-btns{display:flex;gap:8px;}
+
+/* ROOM CARD */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px;}
+.room-card{background:var(--panel2);border-radius:14px;padding:16px;border:1px solid var(--border);cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+.room-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+.room-card.closed{opacity:.5;}
+.room-status{position:absolute;top:12px;right:12px;}
+.room-name{font-size:17px;font-weight:700;margin-bottom:4px;}
+.room-meta{font-size:12px;color:var(--muted);}
+.room-players{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;}
+.room-player-tag{background:rgba(255,255,255,.07);border-radius:20px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:5px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;background:var(--panel2);border:1px solid var(--teal);border-radius:12px;padding:11px 16px;font-size:13px;font-weight:600;color:var(--teal);box-shadow:0 8px 24px rgba(0,0,0,.5);transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.175,.885,.32,1.275);pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SIDEBAR OVERLAY (mobile) */
+.sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:49;backdrop-filter:blur(2px);}
+.sb-backdrop.show{display:block;}
+
+/* RESPONSIVE */
+@media(max-width:680px){.sidebar{transform:translateX(-220px);}.sidebar.open{transform:translateX(0);}.main{margin-left:0;}.content{padding:12px;}.stat-grid{grid-template-columns:repeat(2,1fr);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.page.active>*{animation:fadeUp .25s ease forwards;}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="title">🀄 ไพ่ 13 ใบ</div>
+    <div class="sub">Admin Dashboard</div>
+  </div>
+  <div class="nav">
+    <div class="nav-sec">หลัก</div>
+    <div class="nav-item active" onclick="go('dashboard',this)"><span class="ic">📊</span>ภาพรวม</div>
+    <div class="nav-sec">จัดการ</div>
+    <div class="nav-item" onclick="go('rooms',this)"><span class="ic">🏠</span>ห้องเกม</div>
+    <div class="nav-item" onclick="go('members',this)"><span class="ic">👥</span>สมาชิก <span class="nav-badge" id="nb">0</span></div>
+    <div class="nav-item" onclick="go('chips',this)"><span class="ic">🪙</span>ชิป</div>
+    <div class="nav-item" onclick="go('history',this)"><span class="ic">📋</span>ประวัติ</div>
+    <div class="nav-sec">วิเคราะห์</div>
+    <div class="nav-item" onclick="go('stats',this)"><span class="ic">📈</span>สถิติ</div>
+    <div class="nav-sec">ระบบ</div>
+    <div class="nav-item" onclick="go('settings',this)"><span class="ic">⚙️</span>ตั้งค่า</div>
+  </div>
+  <div class="sidebar-foot">
+    <div class="admin-tag">
+      <div class="admin-dot"></div>
+      <div><div style="font-size:12px;font-weight:700">Admin</div><div style="font-size:10px;color:var(--muted)">Online</div></div>
+    </div>
+  </div>
+</nav>
+
+<div class="sb-backdrop" id="sb-backdrop" onclick="closeSB()"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-ghost btn-sm" id="menu-btn" onclick="toggleSB()" style="display:none">☰</button>
+      <div class="topbar-title" id="pg-title">ภาพรวม</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-purple btn-sm" onclick="openRoom()">+ ห้องใหม่</button>
+      <button class="btn btn-teal btn-sm" onclick="openAddMember()">+ สมาชิก</button>
+      <button class="btn btn-gold btn-sm" onclick="openChipModal(null,'add')">🪙 เติมชิป</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid" id="dash-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px" class="two-col">
+        <div class="tbl-wrap">
+          <div class="tbl-head"><span class="tbl-title">🏆 Top ชิป</span></div>
+          <table><thead><tr><th>สมาชิก</th><th>ชิปรวม</th></tr></thead><tbody id="top-chips"></tbody></table>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><span class="tbl-title">🏠 ห้องที่เปิดอยู่</span></div>
+          <table><thead><tr><th>ห้อง</th><th>ผู้เล่น</th><th>สถานะ</th></tr></thead><tbody id="room-quick"></tbody></table>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span class="tbl-title">📋 ธุรกรรมล่าสุด</span></div>
+        <table><thead><tr><th>สมาชิก</th><th>ประเภท</th><th>มูลค่า</th><th>หมายเหตุ</th><th>เวลา</th></tr></thead><tbody id="dash-tx"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ROOMS -->
+    <div class="page" id="page-rooms">
+      <div class="room-grid" id="room-grid"></div>
+    </div>
+
+    <!-- MEMBERS -->
+    <div class="page" id="page-members">
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <span class="tbl-title">สมาชิก (<span id="mem-cnt">0</span>)</span>
+          <input class="tbl-search" placeholder="🔍 ค้นหาชื่อ..." oninput="filterMem(this.value)">
+        </div>
+        <div class="ovx"><table>
+          <thead><tr><th>ชื่อ</th><th>รหัสผ่าน</th><th>ชิปรวม</th><th>ชิปแต่ละใบ</th><th>เล่น</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <tbody id="mem-body"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- CHIPS -->
+    <div class="page" id="page-chips">
+      <div class="chips-ov" id="chips-ov"></div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span class="tbl-title">💰 ชิปสมาชิก</span></div>
+        <div class="ovx"><table>
+          <thead><tr><th>สมาชิก</th><th style="text-align:center">⚪5</th><th style="text-align:center">🔴10</th><th style="text-align:center">🔵20</th><th style="text-align:center">🟢50</th><th style="text-align:center">⚫100</th><th style="text-align:center">🟣500</th><th>รวม</th><th>จัดการ</th></tr></thead>
+          <tbody id="chip-body"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <select class="form-input" style="width:150px;padding:7px 11px" onchange="filterHist()" id="hf-type">
+          <option value="">ทุกประเภท</option><option value="add">เติมชิป</option><option value="sub">ตัดชิป</option><option value="set">ตั้งค่า</option><option value="game">เกม</option>
+        </select>
+        <input class="tbl-search" placeholder="🔍 ชื่อสมาชิก..." oninput="filterHist()" id="hf-name">
+      </div>
+      <div class="tbl-wrap"><div class="ovx"><table>
+        <thead><tr><th>สมาชิก</th><th>ประเภท</th><th>ชิป</th><th>หมายเหตุ</th><th>โดย</th><th>เวลา</th></tr></thead>
+        <tbody id="hist-body"></tbody>
+      </table></div></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="page" id="page-stats">
+      <div class="stat-grid" id="stats-cards"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="two-col">
+        <div class="tbl-wrap" style="padding:14px"><div class="tbl-title" style="margin-bottom:10px">📊 ชิปแต่ละประเภท</div><div class="bar-chart" id="chip-dist"></div></div>
+        <div class="tbl-wrap" style="padding:14px"><div class="tbl-title" style="margin-bottom:10px">🎮 Top ผู้เล่น</div><div class="bar-chart" id="top-pl"></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div style="max-width:460px;display:flex;flex-direction:column;gap:14px">
+        <div class="tbl-wrap"><div class="tbl-head"><span class="tbl-title">🔑 รหัสผ่าน Admin</span></div>
+          <div style="padding:14px;display:flex;gap:8px">
+            <input class="form-input" type="password" id="adm-pw" placeholder="รหัสผ่านใหม่">
+            <button class="btn btn-teal btn-sm" onclick="saveAdmPw()">บันทึก</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><div class="tbl-head"><span class="tbl-title">🔗 ลิงก์หน้าเข้าเล่น</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--teal)">
+              📄 เปิดไฟล์ <b>poker-player.html</b> ในเบราว์เซอร์เดียวกัน สมาชิกจะเลือกชื่อและใส่รหัสเข้าเล่นได้ทันที
+            </div>
+            <button class="btn btn-gold btn-sm" style="align-self:flex-start" onclick="window.open('poker-player.html')">🎮 เปิดหน้าผู้เล่น</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><div class="tbl-head"><span class="tbl-title">🧹 ข้อมูล</span></div>
+          <div style="padding:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="exportData()">📤 Export JSON</button>
+            <button class="btn btn-red btn-sm" onclick="resetData()">🗑️ ล้างทั้งหมด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- MODAL: สมาชิก -->
+<div class="overlay" id="ov-member">
+<div class="modal">
+  <div class="modal-title" id="mm-title">+ เพิ่มสมาชิก</div>
+  <input type="hidden" id="mm-id">
+  <div class="form-row"><label class="form-lbl">ชื่อ (แสดงในเกม)</label><input class="form-input" id="mm-name" placeholder="ชื่อสมาชิก"></div>
+  <div class="form-row"><label class="form-lbl">รหัสผ่าน (ใช้ login)</label><input class="form-input" id="mm-pw" placeholder="ตั้งรหัสผ่าน" type="password"></div>
+  <div class="form-row"><label class="form-lbl">สถานะ</label>
+    <select class="form-input" id="mm-status"><option value="active">ใช้งาน</option><option value="inactive">ระงับ</option><option value="vip">VIP</option></select>
+  </div>
+  <div class="form-row">
+    <label class="form-lbl">ชิปเริ่มต้น</label>
+    <div id="mm-chip-picker" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+  </div>
+  <div class="modal-btns">
+    <button class="btn btn-teal" style="flex:1" onclick="saveMember()">บันทึก</button>
+    <button class="btn btn-ghost" onclick="closeOv('ov-member')">ยกเลิก</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: ชิป -->
+<div class="overlay" id="ov-chip">
+<div class="modal">
+  <div class="modal-title" id="cm-title">🪙 จัดการชิป</div>
+  <div class="form-row"><label class="form-lbl">สมาชิก</label><select class="form-input" id="cm-mem" onchange="updatePreview()"></select></div>
+  <div class="form-row"><label class="form-lbl">ประเภท</label>
+    <select class="form-input" id="cm-op" onchange="updateCmTitle();updatePreview()">
+      <option value="add">เติมชิป (+)</option><option value="sub">ตัดชิป (−)</option><option value="set">ตั้งค่าใหม่</option>
+    </select>
+  </div>
+  <div class="form-row"><label class="form-lbl">จำนวน</label><div id="cm-chips" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div></div>
+  <div class="form-row"><label class="form-lbl">หมายเหตุ</label><input class="form-input" id="cm-note" placeholder="เช่น เติมรอบ 1"></div>
+  <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:12px" id="cm-preview"></div>
+  <div class="modal-btns">
+    <button class="btn btn-gold" style="flex:1" onclick="applyChip()">ยืนยัน</button>
+    <button class="btn btn-ghost" onclick="closeOv('ov-chip')">ยกเลิก</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: ห้องเกม -->
+<div class="overlay" id="ov-room">
+<div class="modal">
+  <div class="modal-title" id="rm-title">🏠 สร้างห้องใหม่</div>
+  <input type="hidden" id="rm-id">
+  <div class="form-row"><label class="form-lbl">ชื่อห้อง</label><input class="form-input" id="rm-name" placeholder="เช่น โต๊ะ 1, วันศุกร์"></div>
+  <div class="form-row"><label class="form-lbl">เพิ่มผู้เล่น (เลือกสมาชิก)</label>
+    <div id="rm-player-picker" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;max-height:220px;overflow-y:auto"></div>
+  </div>
+  <div class="form-row"><label class="form-lbl">สถานะห้อง</label>
+    <select class="form-input" id="rm-status"><option value="open">เปิด</option><option value="playing">กำลังเล่น</option><option value="closed">ปิด</option></select>
+  </div>
+  <div class="modal-btns">
+    <button class="btn btn-purple" style="flex:1" onclick="saveRoom()">บันทึก</button>
+    <button class="btn btn-ghost" onclick="closeOv('ov-room')">ยกเลิก</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── DATA ── */
+const DENOMS=[5,10,20,50,100,500];
+const CCOLOR={5:'#f0f0f0',10:'#e83030',20:'#2060e0',50:'#10a040',100:'#222',500:'#9020c0'};
+const CNAME={5:'ขาว',10:'แดง',20:'น้ำเงิน',50:'เขียว',100:'ดำ',500:'ม่วง'};
+const CEMOJI={5:'⚪',10:'🔴',20:'🔵',50:'🟢',100:'⚫',500:'🟣'};
+const AVS=['🦊','🐯','🐻','🐼','🦁','🐺','🦅','🐬','🐸','🐙'];
+const AVC=['#f7d84a','#ff5566','#5bc8f5','#3de88a','#ff8c38','#775dd0','#00d4aa','#e83070','#feb019','#008ffb'];
+
+function eWallet(){return{5:0,10:0,20:0,50:0,100:0,500:0};}
+function wTotal(w){return DENOMS.reduce((s,d)=>s+d*(w[d]||0),0);}
+function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function ts(){return new Date().toLocaleString('th-TH',{hour12:false});}
+
+let DB={members:[],rooms:[],tx:[],cfg:{adminPw:'admin1234'}};
+function load(){try{const d=localStorage.getItem('p13admin');if(d)DB=JSON.parse(d);}catch(e){}}
+function save(){localStorage.setItem('p13admin',JSON.stringify(DB));}
+
+/* also write shared data for player page */
+function syncPlayerData(){
+  const pub={
+    members:DB.members.map(m=>({id:m.id,name:m.name,avatar:m.avatar,color:m.color,status:m.status,wallet:m.wallet,gamesPlayed:m.gamesPlayed})),
+    rooms:DB.rooms
+  };
+  localStorage.setItem('p13shared',JSON.stringify(pub));
+}
+
+function addTx(mid,op,chips,by,note){
+  const m=DB.members.find(x=>x.id===mid);
+  DB.tx.unshift({id:gid(),mid,mname:m?m.name:'?',op,chips:{...chips},by:by||'admin',note:note||'',time:ts()});
+  if(DB.tx.length>600)DB.tx.pop();
+}
+
+/* SEED */
+function seed(){
+  if(DB.members.length)return;
+  [['สมชาย ใจดี'],['มานี มีสุข'],['วิชัย เก่งกาจ'],['สุดา แสนดี'],['ประยุทธ มั่นคง']].forEach(([n],i)=>{
+    const w=eWallet();DENOMS.forEach(d=>w[d]=Math.floor(Math.random()*6));
+    DB.members.push({id:gid(),name:n,pw:'1234',status:['active','active','vip','active','inactive'][i],wallet:w,gamesPlayed:Math.floor(Math.random()*20),createdAt:ts(),avatar:AVS[i],color:AVC[i]});
+  });
+  DB.rooms=[{id:gid(),name:'โต๊ะ 1',status:'open',players:[DB.members[0].id,DB.members[1].id,DB.members[2].id],createdAt:ts()},{id:gid(),name:'โต๊ะ 2',status:'closed',players:[DB.members[3].id,DB.members[4].id],createdAt:ts()}];
+  save();syncPlayerData();
+}
+
+/* ── NAV ── */
+const TITLES={dashboard:'ภาพรวม',rooms:'ห้องเกม',members:'สมาชิก',chips:'จัดการชิป',history:'ประวัติธุรกรรม',stats:'สถิติ',settings:'ตั้งค่า'};
+function go(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  document.getElementById('pg-title').textContent=TITLES[id]||id;
+  renderPage(id);
+}
+function toggleSB(){document.getElementById('sidebar').classList.toggle('open');}
+
+/* ── RENDER ── */
+function renderPage(id){
+  if(id==='dashboard')renderDash();
+  else if(id==='rooms')renderRooms();
+  else if(id==='members')renderMembers();
+  else if(id==='chips')renderChips();
+  else if(id==='history')renderHist();
+  else if(id==='stats')renderStats();
+}
+
+/* DASHBOARD */
+function renderDash(){
+  const tot=DB.members.length,act=DB.members.filter(m=>m.status==='active').length;
+  const vip=DB.members.filter(m=>m.status==='vip').length;
+  const chips=DB.members.reduce((s,m)=>s+wTotal(m.wallet),0);
+  const openRooms=DB.rooms.filter(r=>r.status!=='closed').length;
+  document.getElementById('dash-stats').innerHTML=[
+    {l:'สมาชิกทั้งหมด',v:tot,s:`ใช้งาน ${act} | VIP ${vip}`,i:'👥',a:'rgba(0,212,170,.12)'},
+    {l:'ชิปในระบบ',v:chips.toLocaleString(),s:'มูลค่ารวม',i:'🪙',a:'rgba(240,192,64,.12)'},
+    {l:'ห้องที่เปิด',v:openRooms,s:`จาก ${DB.rooms.length} ห้อง`,i:'🏠',a:'rgba(119,93,208,.12)'},
+    {l:'ธุรกรรม',v:DB.tx.length,s:'ทั้งหมด',i:'📋',a:'rgba(0,143,251,.12)'},
+  ].map(s=>`<div class="stat-card" style="--acc:${s.a}"><div class="stat-ic">${s.i}</div><div class="stat-lbl">${s.l}</div><div class="stat-val">${s.v}</div><div class="stat-sub">${s.s}</div></div>`).join('');
+  const top=[...DB.members].sort((a,b)=>wTotal(b.wallet)-wTotal(a.wallet)).slice(0,5);
+  document.getElementById('top-chips').innerHTML=top.map((m,i)=>`<tr><td><span style="color:${m.color}">${m.avatar}</span> ${m.name}</td><td><b style="color:var(--gold)">${wTotal(m.wallet).toLocaleString()}</b></td></tr>`).join('');
+  document.getElementById('room-quick').innerHTML=DB.rooms.map(r=>`<tr><td>${r.name}</td><td>${r.players.length}</td><td>${roomBadge(r.status)}</td></tr>`).join('');
+  document.getElementById('dash-tx').innerHTML=DB.tx.slice(0,6).map(t=>`<tr><td>${t.mname}</td><td><span class="hop hop-${t.op}">${opLbl(t.op)}</span></td><td style="color:var(--gold);font-weight:700">${wTotal(t.chips).toLocaleString()}</td><td style="color:var(--muted);font-size:12px">${t.note||'—'}</td><td style="color:var(--muted);font-size:11px">${t.time}</td></tr>`).join('');
+  document.getElementById('nb').textContent=tot;
+}
+
+/* ROOMS */
+function renderRooms(){
+  document.getElementById('room-grid').innerHTML=DB.rooms.map(r=>{
+    const players=r.players.map(pid=>{const m=DB.members.find(x=>x.id===pid);return m?`<span class="room-player-tag"><span style="color:${m.color}">${m.avatar}</span>${m.name}</span>`:'';}).join('');
+    return`<div class="room-card ${r.status==='closed'?'closed':''}">
+      <div class="room-status">${roomBadge(r.status)}</div>
+      <div class="room-name">🏠 ${r.name}</div>
+      <div class="room-meta">${r.players.length} ผู้เล่น • ${r.createdAt}</div>
+      <div class="room-players">${players}</div>
+      <div style="display:flex;gap:6px;margin-top:12px">
+        <button class="btn btn-ghost btn-sm" onclick="editRoom('${r.id}')">✏️ แก้ไข</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteRoom('${r.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('')+`<div class="room-card" style="border-style:dashed;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:140px;color:var(--muted)" onclick="openRoom()">
+    <div style="text-align:center"><div style="font-size:28px">+</div><div style="font-size:13px">สร้างห้องใหม่</div></div>
+  </div>`;
+}
+
+/* MEMBERS */
+let mFilter='';
+function filterMem(v){mFilter=v.toLowerCase();renderMembers();}
+function renderMembers(){
+  const f=DB.members.filter(m=>m.name.toLowerCase().includes(mFilter));
+  document.getElementById('mem-cnt').textContent=f.length;
+  document.getElementById('mem-body').innerHTML=f.map(m=>`<tr>
+    <td class="name-cell"><div class="av" style="background:${m.color}22;color:${m.color}">${m.avatar}</div><div><div style="font-weight:700">${m.name}</div></div></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span id="pw-${m.id}" style="font-family:monospace;background:rgba(255,255,255,.07);padding:2px 8px;border-radius:6px;font-size:13px;letter-spacing:2px">••••</span>
+        <button class="btn btn-ghost btn-sm" onclick="togglePw('${m.id}','${m.pw||''}')" title="แสดง/ซ่อน" style="padding:4px 7px;font-size:13px">👁</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyPw('${m.pw||''}')" title="คัดลอก" style="padding:4px 7px;font-size:13px">📋</button>
+      </div>
+    </td>
+    <td><b style="color:var(--gold)">${wTotal(m.wallet).toLocaleString()}</b></td>
+    <td>${chipMiniRow(m.wallet)}</td>
+    <td style="color:var(--muted)">${m.gamesPlayed}</td>
+    <td>${statusBadge(m.status)}</td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn btn-ghost btn-sm" onclick="openChipModal('${m.id}','add')">🪙</button>
+      <button class="btn btn-ghost btn-sm" onclick="editMember('${m.id}')">✏️</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="delMember('${m.id}')">🗑</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+/* CHIPS PAGE */
+function renderChips(){
+  document.getElementById('chips-ov').innerHTML=DENOMS.map(d=>{
+    const tot=DB.members.reduce((s,m)=>s+(m.wallet[d]||0),0);
+    return`<div class="chip-card"><div class="chip-vis c${d}" style="position:relative">${d}</div>
+      <div><div style="font-family:'Teko',sans-serif;font-size:18px;font-weight:600">${d} pts <small style="font-size:11px;color:var(--muted)">× ${tot}</small></div>
+      <div style="font-size:11px;color:var(--muted)">รวม ${(d*tot).toLocaleString()}</div></div></div>`;
+  }).join('');
+  document.getElementById('chip-body').innerHTML=DB.members.map(m=>`<tr>
+    <td class="name-cell"><div class="av" style="background:${m.color}22;color:${m.color}">${m.avatar}</div><b>${m.name}</b></td>
+    ${DENOMS.map(d=>`<td style="text-align:center;font-weight:700;color:${CCOLOR[d]==='#f0f0f0'?'var(--text)':CCOLOR[d]}">${m.wallet[d]||0}</td>`).join('')}
+    <td><b style="color:var(--gold)">${wTotal(m.wallet).toLocaleString()}</b></td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn btn-teal btn-sm" onclick="openChipModal('${m.id}','add')">+</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="openChipModal('${m.id}','sub')">−</button>
+      <button class="btn btn-ghost btn-sm" onclick="openChipModal('${m.id}','set')">≡</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+/* HISTORY */
+function filterHist(){renderHist();}
+function renderHist(){
+  const tf=document.getElementById('hf-type')?.value||'',nf=(document.getElementById('hf-name')?.value||'').toLowerCase();
+  const f=DB.tx.filter(t=>(!tf||t.op===tf)&&(!nf||t.mname.toLowerCase().includes(nf)));
+  document.getElementById('hist-body').innerHTML=f.map(t=>`<tr>
+    <td style="font-weight:700">${t.mname}</td>
+    <td><span class="hop hop-${t.op}">${opLbl(t.op)}</span></td>
+    <td>${chipMiniRow(t.chips)}</td>
+    <td style="color:var(--muted);font-size:12px">${t.note||'—'}</td>
+    <td style="color:var(--muted);font-size:12px">${t.by}</td>
+    <td style="color:var(--muted);font-size:11px">${t.time}</td>
+  </tr>`).join('');
+}
+
+/* STATS */
+function renderStats(){
+  const tot=DB.members.length,totV=DB.members.reduce((s,m)=>s+wTotal(m.wallet),0);
+  const avg=tot?Math.round(totV/tot):0;
+  const top=DB.members.reduce((a,m)=>wTotal(m.wallet)>wTotal(a.wallet)?m:a,DB.members[0]||{wallet:eWallet(),name:'—'});
+  document.getElementById('stats-cards').innerHTML=[
+    {l:'มูลค่ารวม',v:totV.toLocaleString(),s:'ทุกสมาชิก',i:'🪙',a:'rgba(240,192,64,.12)'},
+    {l:'เฉลี่ยต่อคน',v:avg.toLocaleString(),s:'ชิป/คน',i:'📊',a:'rgba(0,212,170,.12)'},
+    {l:'ถือมากสุด',v:top.name,s:`${wTotal(top.wallet||eWallet()).toLocaleString()} pts`,i:'🏆',a:'rgba(119,93,208,.12)'},
+    {l:'Tx ทั้งหมด',v:DB.tx.length,s:'ธุรกรรม',i:'📋',a:'rgba(0,143,251,.12)'},
+  ].map(s=>`<div class="stat-card" style="--acc:${s.a}"><div class="stat-ic">${s.i}</div><div class="stat-lbl">${s.l}</div><div class="stat-val" style="font-size:${s.v.length>8?'18px':'30px'}">${s.v}</div><div class="stat-sub">${s.s}</div></div>`).join('');
+  const maxC=Math.max(...DENOMS.map(d=>DB.members.reduce((s,m)=>s+(m.wallet[d]||0),0)),1);
+  document.getElementById('chip-dist').innerHTML=DENOMS.map(d=>{
+    const cnt=DB.members.reduce((s,m)=>s+(m.wallet[d]||0),0);
+    return`<div class="bar-row"><div class="bar-lbl">${CEMOJI[d]} ${d}pts</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/maxC*100)}%;background:${CCOLOR[d]==='#f0f0f0'?'#ccc':CCOLOR[d]}"></div></div><div class="bar-val">${cnt}</div></div>`;
+  }).join('');
+  const topP=[...DB.members].sort((a,b)=>wTotal(b.wallet)-wTotal(a.wallet)).slice(0,5);
+  const maxP=wTotal(topP[0]?.wallet||eWallet())||1;
+  document.getElementById('top-pl').innerHTML=topP.map(m=>`<div class="bar-row"><div class="bar-lbl" style="color:${m.color}">${m.avatar} ${m.name.split(' ')[0]}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(wTotal(m.wallet)/maxP*100)}%;background:${m.color}"></div></div><div class="bar-val">${wTotal(m.wallet).toLocaleString()}</div></div>`).join('');
+}
+
+/* ── MEMBER MODAL ── */
+let cs={};
+function openAddMember(){
+  document.getElementById('mm-id').value='';
+  document.getElementById('mm-title').textContent='+ เพิ่มสมาชิก';
+  document.getElementById('mm-name').value='';
+  document.getElementById('mm-pw').value='';
+  document.getElementById('mm-status').value='active';
+  cs={};buildChipPicker('mm-chip-picker',cs);
+  document.getElementById('ov-member').classList.add('open');
+}
+function editMember(id){
+  const m=DB.members.find(x=>x.id===id);if(!m)return;
+  document.getElementById('mm-id').value=id;
+  document.getElementById('mm-title').textContent='✏️ แก้ไขสมาชิก';
+  document.getElementById('mm-name').value=m.name;
+  document.getElementById('mm-pw').value=m.pw||'';
+  document.getElementById('mm-status').value=m.status;
+  cs={...m.wallet};buildChipPicker('mm-chip-picker',cs);
+  document.getElementById('ov-member').classList.add('open');
+}
+function buildChipPicker(containerId,state){
+  document.getElementById(containerId).innerHTML=DENOMS.map(d=>`
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border-radius:9px;padding:7px 11px">
+      <div class="chip-vis c${d}" style="width:30px;height:30px;font-size:11px;position:relative">${d}</div>
+      <span style="font-size:12px;color:var(--muted);flex:1">${CNAME[d]} (${d}pts)</span>
+      <button onclick="adjCS('${containerId}',${d},-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--text);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:14px">−</button>
+      <span id="${containerId}-v${d}" style="font-size:15px;font-weight:700;min-width:22px;text-align:center">${state[d]||0}</span>
+      <button onclick="adjCS('${containerId}',${d},1)" style="background:rgba(0,212,170,.15);border:none;color:var(--teal);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:14px">+</button>
+    </div>`).join('');
+}
+function adjCS(cid,d,delta){
+  cs[d]=Math.max(0,(cs[d]||0)+delta);
+  const el=document.getElementById(cid+'-v'+d);if(el)el.textContent=cs[d];
+}
+function saveMember(){
+  const name=document.getElementById('mm-name').value.trim();
+  const pw=document.getElementById('mm-pw').value.trim();
+  if(!name){toast('กรุณาใส่ชื่อ');return;}
+  if(!pw){toast('กรุณาตั้งรหัสผ่าน');return;}
+  const wallet={};DENOMS.forEach(d=>wallet[d]=cs[d]||0);
+  const eid=document.getElementById('mm-id').value;
+  if(eid){
+    const m=DB.members.find(x=>x.id===eid);
+    if(m){m.name=name;m.pw=pw;m.status=document.getElementById('mm-status').value;m.wallet=wallet;}
+    toast('✅ บันทึกแล้ว');
+  } else {
+    const i=DB.members.length%AVS.length;
+    const m={id:gid(),name,pw,status:document.getElementById('mm-status').value,wallet,gamesPlayed:0,createdAt:ts(),avatar:AVS[i],color:AVC[i]};
+    DB.members.push(m);
+    addTx(m.id,'add',wallet,'admin','ชิปแรกเข้า');
+    toast('✅ เพิ่มสมาชิกแล้ว');
+  }
+  save();syncPlayerData();closeOv('ov-member');renderPage('members');
+  document.getElementById('nb').textContent=DB.members.length;
+}
+function delMember(id){
+  if(!confirm('ลบสมาชิกนี้?'))return;
+  DB.members=DB.members.filter(m=>m.id!==id);
+  DB.rooms.forEach(r=>r.players=r.players.filter(p=>p!==id));
+  save();syncPlayerData();renderPage('members');toast('🗑 ลบแล้ว');
+}
+
+/* ── CHIP MODAL ── */
+let cc={};
+function openChipModal(mid,defOp){
+  const sel=document.getElementById('cm-mem');
+  sel.innerHTML=DB.members.map(m=>`<option value="${m.id}">${m.avatar} ${m.name}</option>`).join('');
+  if(mid)sel.value=mid;
+  document.getElementById('cm-op').value=defOp||'add';
+  document.getElementById('cm-note').value='';
+  cc={};buildChipPicker2();updateCmTitle();updatePreview();
+  document.getElementById('ov-chip').classList.add('open');
+}
+function buildChipPicker2(){
+  document.getElementById('cm-chips').innerHTML=DENOMS.map(d=>`
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border-radius:9px;padding:7px 11px">
+      <div class="chip-vis c${d}" style="width:30px;height:30px;font-size:11px;position:relative">${d}</div>
+      <span style="font-size:12px;color:var(--muted);flex:1">${CNAME[d]} ${d}pts</span>
+      <button onclick="adjCC(${d},-1)" style="background:rgba(255,255,255,.08);border:none;color:var(--text);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:14px">−</button>
+      <span id="cc-v${d}" style="font-size:15px;font-weight:700;min-width:22px;text-align:center">0</span>
+      <button onclick="adjCC(${d},1)" style="background:rgba(0,212,170,.15);border:none;color:var(--teal);width:24px;height:24px;border-radius:5px;cursor:pointer;font-size:14px">+</button>
+    </div>`).join('');
+}
+function adjCC(d,delta){
+  cc[d]=Math.max(0,(cc[d]||0)+delta);
+  const el=document.getElementById('cc-v'+d);if(el)el.textContent=cc[d];
+  updatePreview();
+}
+function updateCmTitle(){
+  const op=document.getElementById('cm-op').value;
+  document.getElementById('cm-title').textContent={add:'🪙 เติมชิป',sub:'🪙 ตัดชิป',set:'🪙 ตั้งค่าใหม่'}[op]||'🪙';
+  updatePreview();
+}
+function updatePreview(){
+  const op=document.getElementById('cm-op').value;
+  const mid=document.getElementById('cm-mem').value;
+  const m=DB.members.find(x=>x.id===mid);
+  const delta=DENOMS.reduce((s,d)=>s+d*(cc[d]||0),0);
+  const cur=m?wTotal(m.wallet):0;
+  const next=op==='add'?cur+delta:op==='sub'?Math.max(0,cur-delta):delta;
+  const sign=op==='add'?'+':op==='sub'?'−':'=';
+  document.getElementById('cm-preview').innerHTML=`<span style="color:var(--muted)">ปัจจุบัน </span><b style="color:var(--gold)">${cur.toLocaleString()}</b><span style="color:var(--muted);margin:0 6px">${sign}${delta.toLocaleString()}</span><span style="color:var(--muted)">→ </span><b style="color:var(--teal)">${next.toLocaleString()}</b>`;
+}
+function applyChip(){
+  const op=document.getElementById('cm-op').value;
+  const mid=document.getElementById('cm-mem').value;
+  const note=document.getElementById('cm-note').value;
+  const m=DB.members.find(x=>x.id===mid);if(!m){toast('ไม่พบสมาชิก');return;}
+  const amounts={};DENOMS.forEach(d=>amounts[d]=cc[d]||0);
+  if(op==='add')DENOMS.forEach(d=>m.wallet[d]=(m.wallet[d]||0)+(amounts[d]||0));
+  else if(op==='sub')DENOMS.forEach(d=>m.wallet[d]=Math.max(0,(m.wallet[d]||0)-(amounts[d]||0)));
+  else DENOMS.forEach(d=>m.wallet[d]=amounts[d]||0);
+  addTx(m.id,op,amounts,'admin',note);
+  save();syncPlayerData();closeOv('ov-chip');
+  toast(`✅ ${{add:'เติม',sub:'ตัด',set:'ตั้งค่า'}[op]}ชิป — ${m.name}`);
+  renderDash();
+}
+
+/* ── ROOM MODAL ── */
+let roomPlayers=new Set();
+function openRoom(){
+  document.getElementById('rm-id').value='';
+  document.getElementById('rm-title').textContent='🏠 สร้างห้องใหม่';
+  document.getElementById('rm-name').value='';
+  document.getElementById('rm-status').value='open';
+  roomPlayers=new Set();buildRoomPicker();
+  document.getElementById('ov-room').classList.add('open');
+}
+function editRoom(id){
+  const r=DB.rooms.find(x=>x.id===id);if(!r)return;
+  document.getElementById('rm-id').value=id;
+  document.getElementById('rm-title').textContent='✏️ แก้ไขห้อง';
+  document.getElementById('rm-name').value=r.name;
+  document.getElementById('rm-status').value=r.status;
+  roomPlayers=new Set(r.players);buildRoomPicker();
+  document.getElementById('ov-room').classList.add('open');
+}
+function buildRoomPicker(){
+  document.getElementById('rm-player-picker').innerHTML=DB.members.map(m=>`
+    <label style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border-radius:9px;padding:7px 11px;cursor:pointer;${roomPlayers.has(m.id)?'border:1px solid rgba(0,212,170,.3);background:rgba(0,212,170,.07)':'border:1px solid transparent'}">
+      <input type="checkbox" ${roomPlayers.has(m.id)?'checked':''} onchange="toggleRoomPlayer('${m.id}',this.checked)" style="width:16px;height:16px;accent-color:var(--teal)">
+      <span class="av" style="background:${m.color}22;color:${m.color};width:28px;height:28px;font-size:13px">${m.avatar}</span>
+      <span style="font-size:13px;font-weight:600">${m.name}</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--gold)">${wTotal(m.wallet).toLocaleString()} pts</span>
+    </label>`).join('');
+}
+function toggleRoomPlayer(id,checked){
+  if(checked)roomPlayers.add(id);else roomPlayers.delete(id);
+  buildRoomPicker();
+}
+function saveRoom(){
+  const name=document.getElementById('rm-name').value.trim();
+  if(!name){toast('กรุณาใส่ชื่อห้อง');return;}
+  const eid=document.getElementById('rm-id').value;
+  if(eid){
+    const r=DB.rooms.find(x=>x.id===eid);
+    if(r){r.name=name;r.status=document.getElementById('rm-status').value;r.players=[...roomPlayers];}
+  } else {
+    DB.rooms.push({id:gid(),name,status:document.getElementById('rm-status').value,players:[...roomPlayers],createdAt:ts()});
+  }
+  save();syncPlayerData();closeOv('ov-room');renderPage('rooms');toast('✅ บันทึกห้องแล้ว');
+}
+function deleteRoom(id){
+  if(!confirm('ลบห้องนี้?'))return;
+  DB.rooms=DB.rooms.filter(r=>r.id!==id);
+  save();syncPlayerData();renderPage('rooms');toast('🗑 ลบห้องแล้ว');
+}
+
+/* SETTINGS */
+function saveAdmPw(){DB.cfg.adminPw=document.getElementById('adm-pw').value;save();toast('✅ บันทึกรหัสผ่านแล้ว');}
+function exportData(){
+  const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='poker13.json';a.click();
+}
+function resetData(){
+  if(!confirm('ล้างข้อมูลทั้งหมด?'))return;
+  DB={members:[],rooms:[],tx:[],cfg:DB.cfg};save();syncPlayerData();
+  renderPage('dashboard');toast('🗑 ล้างแล้ว');
+}
+
+/* HELPERS */
+function togglePw(id,pw){
+  const el=document.getElementById('pw-'+id);
+  if(!el)return;
+  if(el.dataset.shown==='1'){el.textContent='••••';el.dataset.shown='0';}
+  else{el.textContent=pw||'(ไม่มี)';el.dataset.shown='1';}
+}
+function copyPw(pw){
+  if(!pw){toast('ไม่มีรหัสผ่าน');return;}
+  navigator.clipboard?.writeText(pw).then(()=>toast('📋 คัดลอกรหัสผ่านแล้ว')).catch(()=>{
+    const t=document.createElement('textarea');t.value=pw;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);toast('📋 คัดลอกแล้ว');
+  });
+}
+function closeOv(id){document.getElementById(id).classList.remove('open');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function statusBadge(s){return{active:`<span class="badge b-green">ใช้งาน</span>`,inactive:`<span class="badge b-red">ระงับ</span>`,vip:`<span class="badge b-gold">VIP ⭐</span>`}[s]||`<span class="badge b-blue">${s}</span>`;}
+function roomBadge(s){return{open:`<span class="badge b-green">เปิด</span>`,playing:`<span class="badge b-gold">กำลังเล่น</span>`,closed:`<span class="badge b-red">ปิด</span>`}[s]||'';}
+function opLbl(op){return{add:'เติม',sub:'ตัด',set:'ตั้งค่า',game:'เกม'}[op]||op;}
+function chipMiniRow(w){return DENOMS.filter(d=>(w[d]||0)>0).map(d=>`<span class="chip-mini"><span class="chip-dot" style="background:${CCOLOR[d]}"></span>${w[d]}</span>`).join('')||'—';}
+
+/* RESPONSIVE */
+function openSB(){document.getElementById('sidebar').classList.add('open');document.getElementById('sb-backdrop').classList.add('show');}
+function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sb-backdrop').classList.remove('show');}
+function toggleSB(){document.getElementById('sidebar').classList.contains('open')?closeSB():openSB();}
+function chkMobile(){
+  const b=document.getElementById('menu-btn');
+  if(window.innerWidth<=680){b.style.display='flex';}
+  else{b.style.display='none';closeSB();}
+}
+window.addEventListener('resize',chkMobile);
+
+/* INIT */
+load();seed();chkMobile();
+document.getElementById('adm-pw').value=DB.cfg.adminPw||'admin1234';
+renderDash();
+document.getElementById('nb').textContent=DB.members.length;
+</script>
+</body>
+</html>
