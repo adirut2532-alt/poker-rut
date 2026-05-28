@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>3 กอง กาญ</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap');
@@ -297,7 +297,8 @@ html,body{
 }
 .hand-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .hand-title{font-size:15px;font-weight:700;color:#3a1800;}
-.action-btns{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;}
+.action-btns{display:flex;gap:7px;margin-top:8px;flex-wrap:nowrap;padding-bottom:env(safe-area-inset-bottom,12px);}
+.player-hand-area{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;}
 .phase-bar{
   background:rgba(247,216,74,.1);
   border:1px solid rgba(247,216,74,.25);

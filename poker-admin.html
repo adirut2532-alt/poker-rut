@@ -550,22 +550,6 @@ function deleteRoom(i){
   if(!confirm('ลบห้องนี้?')) return;
   DB.rooms.splice(i,1); save(); renderRooms();
 }
-  document.getElementById('room-grid').innerHTML=DB.rooms.map(r=>{
-    const players=r.players.map(pid=>{const m=DB.members.find(x=>x.id===pid);return m?`<span class="room-player-tag"><span style="color:${m.color}">${m.avatar}</span>${m.name}</span>`:'';}).join('');
-    return`<div class="room-card ${r.status==='closed'?'closed':''}">
-      <div class="room-status">${roomBadge(r.status)}</div>
-      <div class="room-name">🏠 ${r.name}</div>
-      <div class="room-meta">${r.players.length} ผู้เล่น • ${r.createdAt}</div>
-      <div class="room-players">${players}</div>
-      <div style="display:flex;gap:6px;margin-top:12px">
-        <button class="btn btn-ghost btn-sm" onclick="editRoom('${r.id}')">✏️ แก้ไข</button>
-        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteRoom('${r.id}')">🗑</button>
-      </div>
-    </div>`;
-  }).join('')+`<div class="room-card" style="border-style:dashed;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:140px;color:var(--muted)" onclick="openRoom()">
-    <div style="text-align:center"><div style="font-size:28px">+</div><div style="font-size:13px">สร้างห้องใหม่</div></div>
-  </div>`;
-}
 
 /* MEMBERS */
 let mFilter='';
