@@ -190,7 +190,7 @@ html,body{
 }
 @media(orientation:portrait){
   .game-left{overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;}
-  .game-right{border-top:1px solid rgba(255,255,255,.07);}
+  .game-right{border-top:1px solid rgba(255,255,255,.07);overflow-y:auto;display:flex;flex-direction:column;}
 }
 
 /* table felt oval */
@@ -293,13 +293,18 @@ html,body{
 }
 .player-hand-area{
   background:#faf8f5;
-  padding:10px 12px;
-  padding-bottom:calc(16px + env(safe-area-inset-bottom, 20px));
+  padding:10px 12px 0 12px;
   border-top:1px solid rgba(150,80,0,.15);
+  display:flex;flex-direction:column;
 }
-.hand-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.hand-title{font-size:15px;font-weight:700;color:#3a1800;}
-.action-btns{display:flex;gap:7px;margin-top:8px;flex-wrap:nowrap;}
+.action-btns{
+  display:flex;gap:7px;flex-wrap:nowrap;
+  padding:8px 0;
+  padding-bottom:max(16px, env(safe-area-inset-bottom, 16px));
+  background:#faf8f5;
+  position:sticky;bottom:0;
+  flex-shrink:0;
+}
 .phase-bar{
   background:rgba(247,216,74,.1);
   border:1px solid rgba(247,216,74,.25);
