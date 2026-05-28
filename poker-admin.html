@@ -368,6 +368,41 @@ select.form-input option{background:#1a1a2e;}
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+// Firebase init
+const FC={
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+};
+firebase.initializeApp(FC);
+const fbdb=firebase.firestore();
+
+window.fbAdminSave=async function(data){
+  try{ await fbdb.collection('admin').doc('data').set(data); }
+  catch(e){ console.warn('fbSave error',e); }
+};
+window.fbAdminLoad=async function(){
+  try{
+    const snap=await fbdb.collection('admin').doc('data').get();
+    if(snap.exists) return snap.data();
+  }catch(e){ console.warn('fbLoad error',e); }
+  return null;
+};
+window.fbAdminListen=function(callback){
+  return fbdb.collection('admin').doc('data').onSnapshot(snap=>{
+    if(snap.exists) callback(snap.data());
+  });
+};
+window.fbAdminReady=true;
+console.log('🔥 Firebase Admin ready');
+</script>
 <script>
 /* ── DATA ── */
 const DENOMS=[5,10,20,50,100,500];
@@ -383,8 +418,24 @@ function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function ts(){return new Date().toLocaleString('th-TH',{hour12:false});}
 
 let DB={members:[],rooms:[],tx:[],cfg:{adminPw:'admin1234'}};
-function load(){try{const d=localStorage.getItem('p13admin');if(d)DB=JSON.parse(d);}catch(e){}}
-function save(){localStorage.setItem('p13admin',JSON.stringify(DB));}
+function load(){
+  try{const d=localStorage.getItem('p13admin');if(d)DB=JSON.parse(d);}catch(e){}
+  // โหลดจาก Firebase ถ้ามี (override localStorage)
+  if(window.fbAdminReady){
+    window.fbAdminLoad().then(data=>{
+      if(data&&data.members){DB=data;renderDash();document.getElementById('nb').textContent=DB.members.length;}
+    });
+    // ฟัง real-time
+    window.fbAdminListen(data=>{
+      if(data&&data.members){DB=data;syncPlayerData();renderPage(document.querySelector('.nav-item.active')?.onclick?.toString().match(/'(\w+)'/)?.[1]||'dashboard');}
+    });
+  }
+}
+function save(){
+  localStorage.setItem('p13admin',JSON.stringify(DB));
+  // sync ขึ้น Firebase
+  if(window.fbAdminReady) window.fbAdminSave(DB);
+}
 
 /* also write shared data for player page */
 function syncPlayerData(){
@@ -455,6 +506,50 @@ function renderDash(){
 
 /* ROOMS */
 function renderRooms(){
+  const cont=document.getElementById('rooms-cont');
+  if(!cont)return;
+  cont.innerHTML=`
+    <div style="margin-bottom:14px">
+      <button class="btn btn-gold btn-sm" onclick="createRoom()">🚪 สร้างห้องใหม่</button>
+    </div>
+    ${(DB.rooms||[]).map((r,i)=>`
+      <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(150,80,0,.12);display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:16px;font-weight:800;color:#b85e00;letter-spacing:2px">${r.code}</div>
+          <div style="font-size:12px;color:#7a4a18">${r.name||'ห้อง '+(i+1)} • ${r.players||0} ผู้เล่น</div>
+        </div>
+        <button class="btn btn-sm btn-gray" onclick="copyRoomLink('${r.code}')">📋 คัดลอกลิงก์</button>
+        <button class="btn btn-sm btn-red" onclick="deleteRoom(${i})">🗑</button>
+      </div>`).join('')||'<div style="text-align:center;color:#7a4a18;padding:20px">ยังไม่มีห้อง กด "สร้างห้องใหม่"</div>'}
+  `;
+}
+
+async function createRoom(){
+  const code='KAN-'+Math.random().toString(36).slice(2,5).toUpperCase();
+  const name=prompt('ชื่อห้อง (ไม่บังคับ):','')||('ห้อง '+(((DB.rooms||[]).length)+1));
+  if(!DB.rooms) DB.rooms=[];
+  DB.rooms.push({code,name,players:0,createdAt:Date.now()});
+  save();
+  // สร้างห้องใน Firestore
+  if(window.fbAdminReady){
+    await fbdb.collection('rooms').doc(code).set({code,name,status:'lobby',players:{},createdAt:Date.now()});
+  }
+  renderRooms();
+  copyRoomLink(code);
+  toast('🚪 สร้างห้อง '+code+' แล้ว! คัดลอกลิงก์แล้ว');
+}
+
+function copyRoomLink(code){
+  const base=location.href.replace('poker-admin.html','');
+  const link=`${base}room.html?room=${code}`;
+  navigator.clipboard?.writeText(link).catch(()=>{});
+  toast('📋 คัดลอกลิงก์แล้ว: '+link);
+}
+
+function deleteRoom(i){
+  if(!confirm('ลบห้องนี้?')) return;
+  DB.rooms.splice(i,1); save(); renderRooms();
+}
   document.getElementById('room-grid').innerHTML=DB.rooms.map(r=>{
     const players=r.players.map(pid=>{const m=DB.members.find(x=>x.id===pid);return m?`<span class="room-player-tag"><span style="color:${m.color}">${m.avatar}</span>${m.name}</span>`:'';}).join('');
     return`<div class="room-card ${r.status==='closed'?'closed':''}">

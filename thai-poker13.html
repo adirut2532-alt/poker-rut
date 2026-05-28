@@ -231,30 +231,28 @@ html,body{
 
 /* ── BIG CARDS (player hand) ── */
 .big-card{
-  width:66px;height:90px;
-  background:linear-gradient(160deg,#fff 60%,#f4f0ff);
-  border-radius:11px;
+  width:56px;height:78px;
+  background:#ffffff;
+  border-radius:9px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-weight:800;line-height:1;flex-shrink:0;
-  border:1.5px solid rgba(180,140,255,.25);
-  box-shadow:0 4px 14px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.2);
+  font-weight:900;line-height:1;flex-shrink:0;
+  border:1.5px solid rgba(150,80,0,.15);
+  box-shadow:0 2px 8px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.08);
   touch-action:none;position:relative;
-  transition:box-shadow .1s;
 }
-.big-card .cr{font-size:24px;}
-.big-card .cs{font-size:18px;margin-top:2px;}
+.big-card .cr{font-size:21px;}
+.big-card .cs{font-size:16px;margin-top:2px;}
 .big-card.red-card{color:var(--card-r);}
 .big-card.black-card{color:var(--card-b);}
 .big-card.dragging-source{opacity:.3;}
 
 /* ── DROP ZONES ── */
 .drop-zone{
-  display:flex;gap:5px;flex-wrap:nowrap;
-  min-height:102px;padding:5px 8px;
-  background:rgba(80,40,10,.2);
-  border-radius:12px;flex:1;align-items:center;
-  border:2px dashed rgba(200,120,40,.3);
-  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  display:flex;gap:4px;flex-wrap:wrap;
+  min-height:86px;padding:5px 6px;
+  background:#ffffff;
+  border-radius:12px;flex:1;align-items:flex-start;align-content:flex-start;
+  border:2px dashed rgba(150,80,0,.2);
   transition:border-color .15s,background .15s;
   position:relative;
 }
@@ -324,18 +322,18 @@ html,body{
 /* ── GHOST CARD ── */
 #ghost-card{
   position:fixed;pointer-events:none;z-index:9999;
-  width:66px;height:90px;border-radius:11px;
+  width:56px;height:78px;border-radius:9px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-family:'Kanit',sans-serif;font-weight:800;line-height:1;
-  border:2px solid var(--gold);
-  box-shadow:0 10px 30px rgba(0,0,0,.8),0 0 0 3px rgba(247,216,74,.35),0 0 20px rgba(247,216,74,.2);
+  font-family:'Kanit',sans-serif;font-weight:900;line-height:1;
+  border:2px solid #b85e00;
+  box-shadow:0 8px 24px rgba(0,0,0,.25),0 0 0 3px rgba(184,94,0,.25);
   transform:rotate(6deg) scale(1.1);
   opacity:0;transition:opacity .1s;
-  background:linear-gradient(160deg,#fff 60%,#f4f0ff);
+  background:#ffffff;
 }
 #ghost-card.visible{opacity:1;}
-#ghost-card .cr{font-size:24px;}
-#ghost-card .cs{font-size:18px;margin-top:2px;}
+#ghost-card .cr{font-size:21px;}
+#ghost-card .cs{font-size:16px;margin-top:2px;}
 #ghost-card.red-card{color:var(--card-r);}
 #ghost-card.black-card{color:var(--card-b);}
 
@@ -498,25 +496,7 @@ html,body{
 ::-webkit-scrollbar{width:4px;height:4px;} ::-webkit-scrollbar-thumb{background:rgba(150,80,0,.25);border-radius:4px;}
 </style>
 </head>
-<body><div id="multiplayer-section" style="background: #1a1a1a; color: #fff; padding: 20px; border-radius: 12px; margin: 15px 0; text-align: center; font-family: sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-    <h3 style="color: #ffcc00; margin-top: 0;">🃏 ระบบเล่นออนไลน์ (3 กอง กาญ)</h3>
-    <div id="auth-flow">
-        <input type="text" id="username" placeholder="ใส่ชื่อของคุณ" style="padding: 10px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; text-align: center; font-size: 16px;"><br><br>
-        <button onclick="initiateCreateRoom()" style="padding: 10px 20px; width: 85%; max-width: 320px; background: #28a745; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">➕ สร้างห้องใหม่ (แอดมิน)</button>
-        <br><span style="color: #888;">หรือ</span><br><br>
-        <input type="text" id="roomcode-input" placeholder="ใส่โค้ดห้อง 4 หลัก" style="padding: 10px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; text-align: center; font-size: 16px; text-transform: uppercase; letter-spacing: 2px;"><br><br>
-        <button onclick="initiateJoinRoom()" style="padding: 10px 20px; width: 85%; max-width: 320px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer;">🚪 เข้าร่วมห้องเพื่อน</button>
-    </div>
-    <div id="lobby-flow" style="display: none;">
-        <h2 style="color: #ffcc00; margin-bottom: 5px;">รหัสห้อง: <span id="room-code-text" style="background: #333; padding: 2px 10px; border-radius: 5px; letter-spacing: 1px;">XXXX</span></h2>
-        <p style="color: #aaa; font-size: 14px;">ส่งรหัสนี้ให้เพื่อนเพื่อเข้าห้อง</p>
-        <hr style="border: 0; border-top: 1px solid #333; margin: 15px 0;">
-        <p style="font-weight: bold; text-align: left; margin-left: 10px;">👤 ผู้เล่นในห้องขณะนี้:</p>
-        <ul id="player-list" style="list-style: none; padding: 0; text-align: left; margin-left: 15px; font-size: 16px; line-height: 2.0;"></ul>
-        <br>
-        <button id="start-match-btn" onclick="adminStartGame()" style="display: none; padding: 12px 30px; background: #dc3545; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">🃏 สลับไพ่และเริ่มเกมเลย!</button>
-    </div>
-</div>
+<body>
 
 <!-- GHOST CARD -->
 <div id="ghost-card"><span class="cr"></span><span class="cs"></span></div>
@@ -634,10 +614,54 @@ html,body{
   </div>
 </div>
 
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+});
+const fbdb=firebase.firestore();
+
+window.fbSaveScores=async function(roomId,scores){
+  try{ await fbdb.collection('rooms').doc(roomId).set({scores,updatedAt:Date.now()},{merge:true}); }
+  catch(e){ console.warn('fbSave',e); }
+};
+window.fbListenScores=function(roomId,callback){
+  return fbdb.collection('rooms').doc(roomId).onSnapshot(snap=>{
+    if(snap.exists) callback(snap.data().scores||{});
+  });
+};
+window.fbGetRoomId=function(){return new URLSearchParams(location.search).get('room')||'default';};
+window.fbReady=true;
+</script>
 <script>
 /* ============================================================
-   CARD ENGINE
+   FIREBASE HOOKS — เรียกหลังคำนวณคะแนน
 ============================================================ */
+function fbSync(){
+  if(!window.fbReady) return;
+  const roomId = window.fbGetRoomId ? window.fbGetRoomId() : 'default';
+  window.fbSaveScores(roomId, G.totalScores);
+}
+
+// แสดง room ID บน UI ถ้ามี
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    if(!window.fbReady) return;
+    const rid=window.fbGetRoomId();
+    if(rid && rid!=='default'){
+      const el=document.getElementById('game-round-label');
+      if(el) el.title='Room: '+rid;
+    }
+  },1000);
+});
+
 const SUITS=['♠','♥','♦','♣'];
 const RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 const RANK_VAL={};
@@ -1100,15 +1124,16 @@ function onDragEnd(e){
   if(!drag.active)return;
   const t=e.changedTouches?e.changedTouches[0]:e;
 
-  /* find zone under finger */
-  ghost.style.opacity='0'; /* hide briefly so elementFromPoint works */
+  ghost.style.opacity='0';
   const underEl=document.elementFromPoint(t.clientX,t.clientY);
   ghost.style.opacity='';
 
+  // ตรวจว่า drop บนไพ่ใบไหน (big-card) หรือ drop zone
+  const cardEl=underEl?.closest('.big-card[data-source]');
   const zoneEl=underEl?.closest('[data-zone]');
   const targetZone=zoneEl?.dataset?.zone;
 
-  /* cleanup visuals */
+  // cleanup
   ghost.className=ghost.className.replace(' visible','');
   if(drag.lastZone)drag.lastZone.classList.remove('dz-hover');
   if(drag.el)drag.el.classList.remove('dragging-source');
@@ -1118,11 +1143,15 @@ function onDragEnd(e){
   document.removeEventListener('mousemove',onDragMove);
   document.removeEventListener('mouseup',onDragEnd);
 
-  if(!targetZone||targetZone===drag.source){
-    /* dropped back on same zone or nowhere — no-op */
-    return;
+  if(!targetZone||targetZone===drag.source) return;
+
+  // ถ้า drop บนไพ่ใบนั้นโดยตรง → ส่ง toIdx ด้วย
+  if(cardEl && cardEl.dataset.source===targetZone){
+    const toIdx=parseInt(cardEl.dataset.idx);
+    dropCard(drag.source, drag.idx, targetZone, isNaN(toIdx)?undefined:toIdx);
+  } else {
+    dropCard(drag.source, drag.idx, targetZone);
   }
-  dropCard(drag.source,drag.idx,targetZone);
 }
 
 /* Called when user finishes drag onto a zone element (also handles tap-to-zone via onclick fallback) */
@@ -1130,38 +1159,51 @@ function onDropZone(e,el,targetZone){
   /* handled by onDragEnd — this is just for mouse drag safety */
 }
 
-function dropCard(fromZone,fromIdx,toZone){
+function dropCard(fromZone,fromIdx,toZone,toIdx){
   const hand=roundHands[G.currentArranging];
   const maxes={front:3,mid:5,back:5};
 
-  /* get card */
   let card;
   if(fromZone==='unplaced') card=hand.unplaced[fromIdx];
   else                       card=hand[fromZone][fromIdx];
   if(!card) return;
 
-  // If target row is full → swap dragged card with the last card in target
-  // (put displaced card back to source zone / unplaced)
+  // ลากไปวางบนไพ่ใบที่ระบุ → สลับตำแหน่งกัน
+  if(toZone!=='unplaced' && toIdx!==undefined && toIdx>=0){
+    const targetCard=hand[toZone][toIdx];
+    if(targetCard){
+      // เอาไพ่ที่ลากออกจากต้นทาง
+      if(fromZone==='unplaced') hand.unplaced.splice(fromIdx,1);
+      else hand[fromZone].splice(fromIdx,1);
+      // ใส่ไพ่ที่สลับออกไปต้นทาง
+      if(fromZone==='unplaced') hand.unplaced.splice(fromIdx,0,targetCard);
+      else hand[fromZone].splice(fromIdx,0,targetCard);
+      // ใส่ไพ่ที่ลากลงตำแหน่งเป้าหมาย
+      hand[toZone][toIdx]=card;
+      autoFillEmpty();
+      renderGameScreen(); return;
+    }
+  }
+
+  // ลากไปวางในช่องที่เต็มแล้ว (ไม่ได้ drop บนไพ่เฉพาะ) → swap ใบสุดท้าย
   if(toZone!=='unplaced' && hand[toZone].length>=maxes[toZone]){
     const displaced=hand[toZone].pop();
-    // remove dragged from source
     if(fromZone==='unplaced') hand.unplaced.splice(fromIdx,1);
-    else                       hand[fromZone].splice(fromIdx,1);
-    // put dragged into target
+    else hand[fromZone].splice(fromIdx,1);
     hand[toZone].push(card);
-    // put displaced into source (or unplaced if source was unplaced)
     if(fromZone==='unplaced') hand.unplaced.splice(fromIdx,0,displaced);
-    else                       hand[fromZone].splice(fromIdx,0,displaced);
+    else hand[fromZone].splice(fromIdx,0,displaced);
+    autoFillEmpty();
     renderGameScreen(); return;
   }
 
-  /* normal move */
+  // ย้ายปกติ
   if(fromZone==='unplaced') hand.unplaced.splice(fromIdx,1);
-  else                       hand[fromZone].splice(fromIdx,1);
+  else hand[fromZone].splice(fromIdx,1);
   if(toZone==='unplaced') hand.unplaced.push(card);
-  else                     hand[toZone].push(card);
+  else hand[toZone].push(card);
 
-  autoFillEmpty(); // ตรวจว่าเหลือพอดีกับช่องว่างไหม
+  autoFillEmpty();
   renderGameScreen();
 }
 
@@ -1544,6 +1586,7 @@ function bDelay(fn,ms){const t=setTimeout(fn,ms);battleTimers.push(t);return t;}
 function showResult(){
   const res=calculateResults();
   res.forEach(r=>{G.totalScores[r.id]=(G.totalScores[r.id]||0)+r.roundScore;});
+  fbSync(); // sync คะแนนขึ้น Firebase
   G._lastResults=res;
   startBattle(res);
 }
@@ -1725,93 +1768,7 @@ function renderFinalResult(res){
 }
 function nextRound(){G.round++;dealRound();showScreen('game');}
 window.addEventListener('resize',()=>{if(document.getElementById('game').classList.contains('active'))renderGameScreen();});
-renderNameInputs(    // ==========================================
-    // ระบบเชื่อมต่อหลังบ้าน Firebase (poker-kan)
-    // ==========================================
-    const firebaseConfig = {
-        apiKey: "AIzaSyDUd1A3TyFBSSPGIhdULbmnfTV6kvrOByY",
-        authDomain: "poker-kan.firebaseapp.com",
-        databaseURL: "https://poker-kan-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "poker-kan",
-        storageBucket: "poker-kan.firebasestorage.app",
-        messagingSenderId: "267226971967",
-        appId: "1:267226971967:web:3ae1891c63194a97715d8a",
-        measurementId: "G-YYCENTN2Y1"
-    };
-
-    // โหลด Firebase Module แบบ Dynamic เพื่อไม่ให้ตีกับระบบเดิมของพี่
-    import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js").then((firebaseApp) => {
-        import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then((firebaseDb) => {
-            
-            const app = firebaseApp.initializeApp(firebaseConfig);
-            const db = firebaseDb.getDatabase(app);
-            let currentRoom = "";
-            let myId = "";
-
-            window.initiateCreateRoom = function() {
-                const name = document.getElementById('username').value.trim();
-                if(!name) return alert("กรุณาใส่ชื่อผู้เล่นก่อนครับพี่รุจ");
-                const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-                currentRoom = code; myId = "player1";
-                firebaseDb.set(firebaseDb.ref(db, 'rooms/' + code), {
-                    status: "waiting",
-                    players: { "player1": { name: name, submitted: false, cards: "" } }
-                }).then(() => {
-                    switchToLobby(code);
-                    document.getElementById('start-match-btn').style.display = 'inline-block';
-                    listenRoomChanges(code);
-                });
-            }
-
-            window.initiateJoinRoom = function() {
-                const name = document.getElementById('username').value.trim();
-                const code = document.getElementById('roomcode-input').value.trim().toUpperCase();
-                if(!name || code.length !== 4) return alert("กรุณากรอกชื่อและรหัสห้องให้ครบถ้วนครับ");
-                currentRoom = code;
-                firebaseDb.onValue(firebaseDb.ref(db, 'rooms/' + code), (snapshot) => {
-                    const data = snapshot.val();
-                    if(!data) return alert("ไม่พบห้องนี้ในระบบครับ");
-                    const players = data.players || {};
-                    const pCount = Object.keys(players).length;
-                    if(pCount >= 4) return alert("ห้องเต็มแล้วครับพี่!");
-                    myId = "player" + (pCount + 1);
-                    firebaseDb.set(firebaseDb.ref(db, `rooms/${code}/players/${myId}`), { name: name, submitted: false, cards: "" })
-                    .then(() => { switchToLobby(code); listenRoomChanges(code); });
-                }, { onlyOnce: true });
-            }
-
-            function listenRoomChanges(code) {
-                firebaseDb.onValue(firebaseDb.ref(db, 'rooms/' + code), (snapshot) => {
-                    const data = snapshot.val(); if(!data) return;
-                    const listUi = document.getElementById('player-list'); listUi.innerHTML = "";
-                    Object.keys(data.players).forEach(p => {
-                        const isMe = p === myId ? " <span style='color: #007bff;'>(คุณ)</span>" : "";
-                        const isAdmin = p === 'player1' ? " <span style='color: #28a745; font-size: 12px;'>👑 แอดมิน</span>" : "";
-                        listUi.innerHTML += `<li>🟢 ${data.players[p].name}${isMe}${isAdmin}</li>`;
-                    });
-                    if(data.status === "playing") {
-                        document.getElementById('multiplayer-section').style.display = 'none';
-                        // ⚡ เกมเริ่มออนไลน์แล้ว! ตรงนี้เราจะดึงฟังก์ชันแจกไพ่เดิมของพี่มาสั่งให้บอร์ดขยับทำงานต่อ
-                        if (typeof dealRound === "function") {
-                            dealRound(); 
-                        } else {
-                            alert("ห้องพร้อมเล่นแล้ว! เริ่มจัดไพ่ได้เลยพี่");
-                        }
-                    }
-                });
-            }
-
-            window.adminStartGame = function() {
-                firebaseDb.update(firebaseDb.ref(db, `rooms/${currentRoom}`), { status: "playing" });
-            }
-
-            function switchToLobby(code) {
-                document.getElementById('auth-flow').style.display = 'none';
-                document.getElementById('lobby-flow').style.display = 'block';
-                document.getElementById('room-code-text').innerText = code;
-            }
-        });
-    }););
+renderNameInputs();
 </script>
 </body>
 </html>
