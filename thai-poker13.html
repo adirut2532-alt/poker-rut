@@ -498,7 +498,25 @@ html,body{
 ::-webkit-scrollbar{width:4px;height:4px;} ::-webkit-scrollbar-thumb{background:rgba(150,80,0,.25);border-radius:4px;}
 </style>
 </head>
-<body>
+<body><div id="multiplayer-section" style="background: #1a1a1a; color: #fff; padding: 20px; border-radius: 12px; margin: 15px 0; text-align: center; font-family: sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+    <h3 style="color: #ffcc00; margin-top: 0;">🃏 ระบบเล่นออนไลน์ (3 กอง กาญ)</h3>
+    <div id="auth-flow">
+        <input type="text" id="username" placeholder="ใส่ชื่อของคุณ" style="padding: 10px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; text-align: center; font-size: 16px;"><br><br>
+        <button onclick="initiateCreateRoom()" style="padding: 10px 20px; width: 85%; max-width: 320px; background: #28a745; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">➕ สร้างห้องใหม่ (แอดมิน)</button>
+        <br><span style="color: #888;">หรือ</span><br><br>
+        <input type="text" id="roomcode-input" placeholder="ใส่โค้ดห้อง 4 หลัก" style="padding: 10px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; text-align: center; font-size: 16px; text-transform: uppercase; letter-spacing: 2px;"><br><br>
+        <button onclick="initiateJoinRoom()" style="padding: 10px 20px; width: 85%; max-width: 320px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer;">🚪 เข้าร่วมห้องเพื่อน</button>
+    </div>
+    <div id="lobby-flow" style="display: none;">
+        <h2 style="color: #ffcc00; margin-bottom: 5px;">รหัสห้อง: <span id="room-code-text" style="background: #333; padding: 2px 10px; border-radius: 5px; letter-spacing: 1px;">XXXX</span></h2>
+        <p style="color: #aaa; font-size: 14px;">ส่งรหัสนี้ให้เพื่อนเพื่อเข้าห้อง</p>
+        <hr style="border: 0; border-top: 1px solid #333; margin: 15px 0;">
+        <p style="font-weight: bold; text-align: left; margin-left: 10px;">👤 ผู้เล่นในห้องขณะนี้:</p>
+        <ul id="player-list" style="list-style: none; padding: 0; text-align: left; margin-left: 15px; font-size: 16px; line-height: 2.0;"></ul>
+        <br>
+        <button id="start-match-btn" onclick="adminStartGame()" style="display: none; padding: 12px 30px; background: #dc3545; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">🃏 สลับไพ่และเริ่มเกมเลย!</button>
+    </div>
+</div>
 
 <!-- GHOST CARD -->
 <div id="ghost-card"><span class="cr"></span><span class="cs"></span></div>
@@ -1707,7 +1725,93 @@ function renderFinalResult(res){
 }
 function nextRound(){G.round++;dealRound();showScreen('game');}
 window.addEventListener('resize',()=>{if(document.getElementById('game').classList.contains('active'))renderGameScreen();});
-renderNameInputs();
+renderNameInputs(    // ==========================================
+    // ระบบเชื่อมต่อหลังบ้าน Firebase (poker-kan)
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDUd1A3TyFBSSPGIhdULbmnfTV6kvrOByY",
+        authDomain: "poker-kan.firebaseapp.com",
+        databaseURL: "https://poker-kan-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "poker-kan",
+        storageBucket: "poker-kan.firebasestorage.app",
+        messagingSenderId: "267226971967",
+        appId: "1:267226971967:web:3ae1891c63194a97715d8a",
+        measurementId: "G-YYCENTN2Y1"
+    };
+
+    // โหลด Firebase Module แบบ Dynamic เพื่อไม่ให้ตีกับระบบเดิมของพี่
+    import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js").then((firebaseApp) => {
+        import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then((firebaseDb) => {
+            
+            const app = firebaseApp.initializeApp(firebaseConfig);
+            const db = firebaseDb.getDatabase(app);
+            let currentRoom = "";
+            let myId = "";
+
+            window.initiateCreateRoom = function() {
+                const name = document.getElementById('username').value.trim();
+                if(!name) return alert("กรุณาใส่ชื่อผู้เล่นก่อนครับพี่รุจ");
+                const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+                currentRoom = code; myId = "player1";
+                firebaseDb.set(firebaseDb.ref(db, 'rooms/' + code), {
+                    status: "waiting",
+                    players: { "player1": { name: name, submitted: false, cards: "" } }
+                }).then(() => {
+                    switchToLobby(code);
+                    document.getElementById('start-match-btn').style.display = 'inline-block';
+                    listenRoomChanges(code);
+                });
+            }
+
+            window.initiateJoinRoom = function() {
+                const name = document.getElementById('username').value.trim();
+                const code = document.getElementById('roomcode-input').value.trim().toUpperCase();
+                if(!name || code.length !== 4) return alert("กรุณากรอกชื่อและรหัสห้องให้ครบถ้วนครับ");
+                currentRoom = code;
+                firebaseDb.onValue(firebaseDb.ref(db, 'rooms/' + code), (snapshot) => {
+                    const data = snapshot.val();
+                    if(!data) return alert("ไม่พบห้องนี้ในระบบครับ");
+                    const players = data.players || {};
+                    const pCount = Object.keys(players).length;
+                    if(pCount >= 4) return alert("ห้องเต็มแล้วครับพี่!");
+                    myId = "player" + (pCount + 1);
+                    firebaseDb.set(firebaseDb.ref(db, `rooms/${code}/players/${myId}`), { name: name, submitted: false, cards: "" })
+                    .then(() => { switchToLobby(code); listenRoomChanges(code); });
+                }, { onlyOnce: true });
+            }
+
+            function listenRoomChanges(code) {
+                firebaseDb.onValue(firebaseDb.ref(db, 'rooms/' + code), (snapshot) => {
+                    const data = snapshot.val(); if(!data) return;
+                    const listUi = document.getElementById('player-list'); listUi.innerHTML = "";
+                    Object.keys(data.players).forEach(p => {
+                        const isMe = p === myId ? " <span style='color: #007bff;'>(คุณ)</span>" : "";
+                        const isAdmin = p === 'player1' ? " <span style='color: #28a745; font-size: 12px;'>👑 แอดมิน</span>" : "";
+                        listUi.innerHTML += `<li>🟢 ${data.players[p].name}${isMe}${isAdmin}</li>`;
+                    });
+                    if(data.status === "playing") {
+                        document.getElementById('multiplayer-section').style.display = 'none';
+                        // ⚡ เกมเริ่มออนไลน์แล้ว! ตรงนี้เราจะดึงฟังก์ชันแจกไพ่เดิมของพี่มาสั่งให้บอร์ดขยับทำงานต่อ
+                        if (typeof dealRound === "function") {
+                            dealRound(); 
+                        } else {
+                            alert("ห้องพร้อมเล่นแล้ว! เริ่มจัดไพ่ได้เลยพี่");
+                        }
+                    }
+                });
+            }
+
+            window.adminStartGame = function() {
+                firebaseDb.update(firebaseDb.ref(db, `rooms/${currentRoom}`), { status: "playing" });
+            }
+
+            function switchToLobby(code) {
+                document.getElementById('auth-flow').style.display = 'none';
+                document.getElementById('lobby-flow').style.display = 'block';
+                document.getElementById('room-code-text').innerText = code;
+            }
+        });
+    }););
 </script>
 </body>
 </html>
