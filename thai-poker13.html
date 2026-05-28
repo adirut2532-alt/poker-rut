@@ -33,6 +33,7 @@ html,body{
   font-family:'Kanit',sans-serif;
   background:#faf8f5;color:#1a0e00;
   height:100%;overflow:hidden;user-select:none;
+  padding-bottom:env(safe-area-inset-bottom,0px);
 }
 .screen{display:none;width:100vw;height:100vh;overflow:hidden;}
 .screen.active{display:flex;flex-direction:column;}
@@ -291,14 +292,14 @@ html,body{
   width:32px;flex-shrink:0;text-align:center;line-height:1.3;color:#3a1800;font-weight:700;font-size:12px;
 }
 .player-hand-area{
-  background:rgba(20,10,3,.7);
+  background:#faf8f5;
   padding:10px 12px;
-  border-top:1px solid rgba(200,120,40,.2);
+  padding-bottom:calc(16px + env(safe-area-inset-bottom, 20px));
+  border-top:1px solid rgba(150,80,0,.15);
 }
 .hand-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .hand-title{font-size:15px;font-weight:700;color:#3a1800;}
-.action-btns{display:flex;gap:7px;margin-top:8px;flex-wrap:nowrap;padding-bottom:env(safe-area-inset-bottom,12px);}
-.player-hand-area{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;}
+.action-btns{display:flex;gap:7px;margin-top:8px;flex-wrap:nowrap;}
 .phase-bar{
   background:rgba(247,216,74,.1);
   border:1px solid rgba(247,216,74,.25);
