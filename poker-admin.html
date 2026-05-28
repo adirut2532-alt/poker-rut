@@ -543,7 +543,37 @@ function copyRoomLink(code){
   const base=location.href.replace('poker-admin.html','');
   const link=`${base}room.html?room=${code}`;
   navigator.clipboard?.writeText(link).catch(()=>{});
-  toast('📋 คัดลอกลิงก์แล้ว: '+link);
+  // แสดง QR Code popup
+  showRoomQR(code, link);
+  toast('📋 คัดลอกลิงก์แล้ว');
+}
+
+function showRoomQR(code, link){
+  // ลบ popup เก่า
+  document.getElementById('qr-popup')?.remove();
+  const pop=document.createElement('div');
+  pop.id='qr-popup';
+  pop.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  pop.innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:320px;text-align:center;">
+      <div style="font-size:18px;font-weight:900;color:#b85e00;margin-bottom:4px">🚪 ห้อง ${code}</div>
+      <div style="font-size:12px;color:#7a4a18;margin-bottom:16px">ส่งลิงก์หรือ QR Code ให้เพื่อนสแกนเลยครับ</div>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}"
+        style="width:200px;height:200px;border-radius:12px;border:1px solid rgba(150,80,0,.15);">
+      <div style="margin-top:12px;padding:8px 12px;background:#fff3e0;border-radius:8px;font-size:11px;word-break:break-all;color:#7a4a18">${link}</div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button onclick="navigator.share?.({url:'${link}',title:'3 กอง กาญ - ห้อง ${code}'})||navigator.clipboard?.writeText('${link}')"
+          style="flex:1;padding:10px;border:none;border-radius:10px;background:linear-gradient(160deg,#e08000,#b05800);color:#fff;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+          📤 แชร์
+        </button>
+        <button onclick="document.getElementById('qr-popup').remove()"
+          style="flex:1;padding:10px;border:1px solid rgba(150,80,0,.2);border-radius:10px;background:#f5f0e8;color:#5a3818;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+          ✕ ปิด
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(pop);
+  pop.addEventListener('click', e=>{ if(e.target===pop) pop.remove(); });
 }
 
 function deleteRoom(i){
