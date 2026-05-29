@@ -796,12 +796,18 @@ function listen(){
     // ถ้าไม่อยู่ในห้อง → เพิ่มเข้าไปอัตโนมัติ
     if(!me&&myName){
       const av=myAvatar||'🦊';
-      const activePlayers=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue);
-      const alreadyHasHost=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue).some(p=>p.isHost);
-      const isHost=!alreadyHasHost&&activePlayers.length===0;
+      // หา entry เก่าที่ชื่อเดียวกัน (เปิดหลายแท็บ/refresh จน id เปลี่ยน) → takeover
+      const dupEntries=Object.entries(players).filter(([id,p])=>p.name===myName);
+      const inheritedHost=dupEntries.some(([id,p])=>p.isHost);
+      const inheritedSpec=dupEntries.length>0&&dupEntries.every(([id,p])=>p.isSpectator);
+      const activePlayers=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue&&p.name!==myName);
+      const alreadyHasHost=activePlayers.some(p=>p.isHost);
+      const isHost=inheritedHost||(!alreadyHasHost&&activePlayers.length===0);
       const updates={};
       const st=roomData.status||'lobby';
-      const isPassive=activePlayers.length>=4||st==='playing';
+      const isPassive=inheritedSpec||activePlayers.length>=4||(st==='playing'&&dupEntries.length===0);
+      // ลบ entry เก่าที่ชื่อซ้ำทั้งหมด
+      dupEntries.forEach(([id])=>{ updates[`players.${id}`]=firebase.firestore.FieldValue.delete(); });
       updates[`players.${myId}`]={
         name:myName,avatar:av,
         ready:false,isHost,score:0,
@@ -969,7 +975,10 @@ function renderSpectatorView(){
 function renderGame(){
   const body=document.getElementById('game-body');
   const players=Object.entries(roomData.players||{});
-  const opps=players.filter(([id])=>id!==myId).map(([id,p])=>({...p,id}));
+  const _seenOpp={};
+  const opps=players.filter(([id])=>id!==myId).map(([id,p])=>({...p,id}))
+    .filter(p=>!p.isSpectator&&!p.isQueue)
+    .filter(p=>{ if(p.name===myName)return false; if(_seenOpp[p.name])return false; _seenOpp[p.name]=1; return true; });
   const n=opps.length;
   const handsData=roomData.hands||{};
   const chipVal=(roomData.scores||{})[myId]||0;
@@ -1266,7 +1275,11 @@ function showResults(){
   resultsShown=true;
   initChat();
 
-  const players=Object.values(roomData.players||{}).filter(p=>!p.isSpectator&&!p.isQueue);
+  // dedupe ตามชื่อ — กันคนเดียวโผล่หลาย entry (เปิดหลายแท็บ/refresh/join ซ้ำ)
+  const _seen={};
+  const players=Object.values(roomData.players||{})
+    .filter(p=>!p.isSpectator&&!p.isQueue)
+    .filter(p=>{ if(_seen[p.name])return false; _seen[p.name]=1; return true; });
   const hands=roomData.hands||{};
   const handsById={};
   players.forEach(p=>{
