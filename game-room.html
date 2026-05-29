@@ -760,15 +760,14 @@ function listen(){
   });
 }
 
-// ── Auto check โดยไม่ต้องรอ host ──
 function autoCheckDone(){
   const deals=roomData.deals||{};
   const hands=roomData.hands||{};
-  const dealedIds=Object.keys(deals);
+  // กรอง key ที่เป็น id จริงๆ (ไม่ใช่ name_xxx)
+  const dealedIds=Object.keys(deals).filter(k=>!k.startsWith('name_'));
   if(!dealedIds.length) return;
   const allDone=dealedIds.every(id=>hands[id]?.done);
   if(allDone && roomData.status!=='results'){
-    // ทุกคนยืนยันแล้ว → อัปสถานะ (ทุกคนสามารถทำได้)
     db.collection('rooms').doc(roomId).update({status:'results'}).catch(()=>{});
   }
 }
@@ -791,15 +790,16 @@ function renderLobby(){
 async function hostStart(){
   if(!isHost)return;
   const allPlayers=Object.values(roomData.players||{});
-  // เฉพาะผู้เล่นจริง ไม่นับ spectator/queue
   const activePlayers=allPlayers.filter(p=>!p.isSpectator&&!p.isQueue);
   if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
 
-  // แจกไพ่เฉพาะ active players
   const deck=shuffle(makeDeck());
   const deals={};
+  // แจกด้วย id AND name เพื่อให้หาเจอทั้งสองทาง
   activePlayers.forEach((p,i)=>{
-    deals[p.id]=deck.slice(i*13,(i+1)*13);
+    const cards=deck.slice(i*13,(i+1)*13);
+    deals[p.id]=cards;           // key = id
+    deals['name_'+p.name]=cards; // key = name (backup)
   });
 
   await db.collection('rooms').doc(roomId).update({
@@ -815,21 +815,25 @@ async function hostStart(){
 function startRound(){
   const deals=roomData.deals||{};
   const players=roomData.players||{};
-  let myCards=deals[myId]||[];
 
-  // ถ้าหา myId ไม่เจอใน deals → ลองหาจากชื่อ
+  // หาไพ่ — ลองทุกวิธี
+  let myCards=deals[myId]                    // 1. ด้วย myId
+    ||deals['name_'+myName]                  // 2. ด้วย name key
+    ||deals[Object.keys(players).find(id=>players[id]?.name===myName)||''] // 3. หา id จากชื่อ
+    ||[];
+
+  // อัป myId ถ้าหาเจอจากวิธีที่ 3
   if(!myCards.length){
-    const entry=Object.entries(players).find(([,p])=>p.name===myName);
-    if(entry&&deals[entry[0]]){
-      myId=entry[0]; // อัป myId ให้ตรง
-      myCards=deals[entry[0]];
+    const foundId=Object.keys(players).find(id=>players[id]?.name===myName);
+    if(foundId&&deals[foundId]){
+      myId=foundId;
+      myCards=deals[foundId];
       sessionStorage.setItem('gr_myId',myId);
     }
   }
 
-  const myRole=players[myId];
+  const myRole=players[myId]||Object.values(players).find(p=>p.name===myName);
 
-  // spectator/queue หรือไม่มีไพ่ → ดูอย่างเดียว
   if(!myCards.length||myRole?.isSpectator||myRole?.isQueue){
     document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);
     showScreen('game');
