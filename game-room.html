@@ -630,23 +630,26 @@ function isDragonHand(h){
 
 function calcScores(players,hands){
   const n=players.length;
+  // hands key = ชื่อ
+  const h=k=>hands[k.name]||hands[k.id]||{front:[],mid:[],back:[],foul:false};
   const sc=players.map(p=>({id:p.id,name:p.name,avatar:p.avatar,roundScore:0,bonusLabel:'',taluCount:0,isDarby:false,_tw:0,_pb:{}}));
   for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
     const a=sc[i],b=sc[j];
-    if(hands[a.id].foul||hands[b.id].foul)continue;
+    const ha=h(a),hb=h(b);
+    if(ha.foul||hb.foul)continue;
     let ps=0,qs=0,aw=0,bw=0;
     ['front','mid','back'].forEach(row=>{
-      const cv=cmpH(hands[a.id][row],hands[b.id][row]);
-      const ba=bonus(hands[a.id][row],row).pts,bb=bonus(hands[b.id][row],row).pts;
-      if(cv>0){ps+=ba>0?ba:1;qs-=ba>0?ba:1;aw++;if(ba>0){const lbl=bonus(hands[a.id][row],row).label;if(lbl)a.bonusLabel=a.bonusLabel?a.bonusLabel+', '+lbl:lbl;}}
-      else if(cv<0){qs+=bb>0?bb:1;ps-=bb>0?bb:1;bw++;if(bb>0){const lbl=bonus(hands[b.id][row],row).label;if(lbl)b.bonusLabel=b.bonusLabel?b.bonusLabel+', '+lbl:lbl;}}
+      const cv=cmpH(ha[row]||[],hb[row]||[]);
+      const ba=bonus(ha[row]||[],row).pts,bb=bonus(hb[row]||[],row).pts;
+      if(cv>0){ps+=ba>0?ba:1;qs-=ba>0?ba:1;aw++;if(ba>0){const lbl=bonus(ha[row],row).label;if(lbl)a.bonusLabel=a.bonusLabel?a.bonusLabel+', '+lbl:lbl;}}
+      else if(cv<0){qs+=bb>0?bb:1;ps-=bb>0?bb:1;bw++;if(bb>0){const lbl=bonus(hb[row],row).label;if(lbl)b.bonusLabel=b.bonusLabel?b.bonusLabel+', '+lbl:lbl;}}
     });
     if(aw===3){ps*=2;qs*=2;a.taluCount++;a._tw++;a._pb[j]={talu:true};b._pb[i]={talu:true};}
     else if(bw===3){ps*=2;qs*=2;b.taluCount++;b._tw++;b._pb[i]={talu:true};a._pb[j]={talu:true};}
     a.roundScore+=ps;b.roundScore+=qs;
   }
   sc.forEach(s=>{if(n===4&&s._tw===n-1){s.isDarby=true;s.roundScore*=4;sc.forEach(o=>{if(o.id!==s.id)o.roundScore*=4;});}});
-  sc.forEach(s=>{if(hands[s.id].foul){const pen=6*(n-1);s.roundScore=-pen;s.bonusLabel='⚠️ ฟาว';sc.forEach(o=>{if(o.id!==s.id)o.roundScore+=6;});}});
+  sc.forEach(s=>{if(h(s).foul){const pen=6*(n-1);s.roundScore=-pen;s.bonusLabel='⚠️ ฟาว';sc.forEach(o=>{if(o.id!==s.id)o.roundScore+=6;});}});
   return sc;
 }
 
@@ -1196,10 +1199,7 @@ function showResults(){
       taluCount:0,isDarby:false
     }));
   }else{
-    // calcScores ต้องการ hands[id] → สร้าง handsForCalc
-    const handsForCalc={};
-    players.forEach(p=>{ handsForCalc[p.id]=handsById[p.name]; });
-    scores=calcScores(players,handsForCalc);
+    scores=calcScores(players,handsById);
   }
 
   // บันทึกคะแนนสะสม (ทุกคนบันทึกได้ — ค่าเหมือนกัน)
