@@ -770,11 +770,21 @@ function listen(){
 function autoCheckDone(){
   const deals=roomData.deals||{};
   const hands=roomData.hands||{};
-  // กรอง key ที่เป็น id จริงๆ (ไม่ใช่ name_xxx)
+  const players=roomData.players||{};
+  // เอา key จาก deals ที่ไม่ใช่ name_ และเป็น player จริง
   const dealedIds=Object.keys(deals).filter(k=>!k.startsWith('name_'));
   if(!dealedIds.length) return;
-  const allDone=dealedIds.every(id=>hands[id]?.done);
-  if(allDone && roomData.status!=='results'){
+  // เช็คว่าทุก id ที่ได้รับไพ่ ยืนยันแล้วหรือยัง
+  // รองรับ hands ที่บันทึกด้วย id หรือ name ก็ได้
+  const allDone=dealedIds.every(id=>{
+    if(hands[id]?.done) return true;
+    // หาจากชื่อ
+    const name=players[id]?.name;
+    if(name&&hands['name_'+name]?.done) return true;
+    // หาจาก hands ที่ name ตรงกัน
+    return Object.entries(hands).some(([hid,h])=>h.done&&players[hid]?.name===players[id]?.name);
+  });
+  if(allDone&&roomData.status!=='results'){
     db.collection('rooms').doc(roomId).update({status:'results'}).catch(()=>{});
   }
 }
@@ -1125,20 +1135,29 @@ function dropCard(fromZone,fromIdx,toZone,toIdx){
 // ── CONFIRM ──
 async function confirmHand(){
   hand.done=true;hand.foul=false;
+  // หา key จริงจาก deals
+  const deals=roomData.deals||{};
+  const realId=Object.keys(deals).find(k=>!k.startsWith('name_')&&
+    (k===myId||deals['name_'+myName]===deals[k]))||myId;
   const updates={};
-  updates[`hands.${myId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
+  updates[`hands.${realId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
+  if(realId!==myId) updates[`hands.${myId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
-  checkAllDone();
+  autoCheckDone();
 }
 
 async function confirmFoul(){
   hand.done=true;hand.foul=true;
+  const deals=roomData.deals||{};
+  const realId=Object.keys(deals).find(k=>!k.startsWith('name_')&&
+    (k===myId||deals['name_'+myName]===deals[k]))||myId;
   const updates={};
-  updates[`hands.${myId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
+  updates[`hands.${realId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
+  if(realId!==myId) updates[`hands.${myId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
-  checkAllDone();
+  autoCheckDone();
 }
 
 async function undoConfirm(){
