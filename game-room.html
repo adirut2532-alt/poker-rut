@@ -770,20 +770,10 @@ function listen(){
 function autoCheckDone(){
   const deals=roomData.deals||{};
   const hands=roomData.hands||{};
-  const players=roomData.players||{};
-  // เอา key จาก deals ที่ไม่ใช่ name_ และเป็น player จริง
-  const dealedIds=Object.keys(deals).filter(k=>!k.startsWith('name_'));
-  if(!dealedIds.length) return;
-  // เช็คว่าทุก id ที่ได้รับไพ่ ยืนยันแล้วหรือยัง
-  // รองรับ hands ที่บันทึกด้วย id หรือ name ก็ได้
-  const allDone=dealedIds.every(id=>{
-    if(hands[id]?.done) return true;
-    // หาจากชื่อ
-    const name=players[id]?.name;
-    if(name&&hands['name_'+name]?.done) return true;
-    // หาจาก hands ที่ name ตรงกัน
-    return Object.entries(hands).some(([hid,h])=>h.done&&players[hid]?.name===players[id]?.name);
-  });
+  // deals และ hands ใช้ชื่อเป็น key เหมือนกัน
+  const names=Object.keys(deals);
+  if(!names.length) return;
+  const allDone=names.every(n=>hands[n]?.done);
   if(allDone&&roomData.status!=='results'){
     db.collection('rooms').doc(roomId).update({status:'results'}).catch(()=>{});
   }
@@ -823,10 +813,7 @@ async function hostStart(){
   const deals={};
   activePlayers.forEach((p,i)=>{
     const cards=deck.slice(i*13,(i+1)*13);
-    // บันทึกด้วย id และชื่อ
-    const pid=Object.keys(players).find(id=>players[id]===p)||p.name;
-    deals[pid]=cards;
-    deals['name_'+p.name]=cards;
+    deals[p.name]=cards;  // ใช้ชื่อเป็น key เดียว
   });
 
   await db.collection('rooms').doc(roomId).update({
@@ -843,22 +830,8 @@ function startRound(){
   const deals=roomData.deals||{};
   const players=roomData.players||{};
 
-  // หาไพ่ — ลองทุกวิธี
-  let myCards=deals[myId]                    // 1. ด้วย myId
-    ||deals['name_'+myName]                  // 2. ด้วย name key
-    ||deals[Object.keys(players).find(id=>players[id]?.name===myName)||''] // 3. หา id จากชื่อ
-    ||[];
-
-  // อัป myId ถ้าหาเจอจากวิธีที่ 3
-  if(!myCards.length){
-    const foundId=Object.keys(players).find(id=>players[id]?.name===myName);
-    if(foundId&&deals[foundId]){
-      myId=foundId;
-      myCards=deals[foundId];
-      sessionStorage.setItem('gr_myId',myId);
-    }
-  }
-
+  // ใช้ชื่อเป็น key โดยตรง
+  const myCards=deals[myName]||[];
   const myRole=players[myId]||Object.values(players).find(p=>p.name===myName);
 
   if(!myCards.length||myRole?.isSpectator||myRole?.isQueue){
@@ -1135,13 +1108,8 @@ function dropCard(fromZone,fromIdx,toZone,toIdx){
 // ── CONFIRM ──
 async function confirmHand(){
   hand.done=true;hand.foul=false;
-  // หา key จริงจาก deals
-  const deals=roomData.deals||{};
-  const realId=Object.keys(deals).find(k=>!k.startsWith('name_')&&
-    (k===myId||deals['name_'+myName]===deals[k]))||myId;
   const updates={};
-  updates[`hands.${realId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
-  if(realId!==myId) updates[`hands.${myId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
+  updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
   autoCheckDone();
@@ -1149,12 +1117,8 @@ async function confirmHand(){
 
 async function confirmFoul(){
   hand.done=true;hand.foul=true;
-  const deals=roomData.deals||{};
-  const realId=Object.keys(deals).find(k=>!k.startsWith('name_')&&
-    (k===myId||deals['name_'+myName]===deals[k]))||myId;
   const updates={};
-  updates[`hands.${realId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
-  if(realId!==myId) updates[`hands.${myId}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
+  updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
   autoCheckDone();
@@ -1165,7 +1129,7 @@ async function undoConfirm(){
   if(allDone){alert('ไม่สามารถจัดใหม่ได้แล้ว');return;}
   hand.done=false;hand.foul=false;
   const updates={};
-  updates[`hands.${myId}.done`]=false;
+  updates[`hands.${myName}.done`]=false;
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
 }
@@ -1177,11 +1141,10 @@ async function checkAllDone(){
     if(!data||data.status==='results') return;
     const deals=data.deals||{};
     const hands=data.hands||{};
-    const dealedIds=Object.keys(deals);
-    if(!dealedIds.length) return;
-    const allDone=dealedIds.every(id=>hands[id]?.done);
+    const names=Object.keys(deals);
+    if(!names.length) return;
+    const allDone=names.every(n=>hands[n]?.done);
     if(allDone){
-      // ทุกคนสามารถ trigger ได้ — ใช้ transaction ป้องกัน race condition
       await db.collection('rooms').doc(roomId).update({status:'results'});
     }
   }catch(e){console.warn('checkAllDone error',e);}
@@ -1192,6 +1155,7 @@ function showResults(){
   const players=Object.values(roomData.players||{});
   const hands=roomData.hands||{};
   if(!players.length||!Object.keys(hands).length)return;
+  // map hands key (name) → player
 
   // ตรวจ dragon
   const dragon=players.find(p=>isDragonHand(hands[p.id]||{front:[],mid:[],back:[]}));
@@ -1267,8 +1231,8 @@ async function leaveRoom(){
     const data=snap.data()||{};
     const updates={};
     // ถ้าออกระหว่างเกม และยังไม่ได้ยืนยัน → บันทึกเป็นฟาว
-    if((data.status==='playing')&&data.deals&&data.deals[myId]&&!data.hands?.[myId]?.done){
-      updates[`hands.${myId}`]={front:[],mid:[],back:[],done:true,foul:true};
+    if((data.status==='playing')&&data.deals&&data.deals[myName]&&!data.hands?.[myName]?.done){
+      updates[`hands.${myName}`]={front:[],mid:[],back:[],done:true,foul:true};
     }
     updates[`players.${myId}`]=firebase.firestore.FieldValue.delete();
     await db.collection('rooms').doc(roomId).update(updates);
