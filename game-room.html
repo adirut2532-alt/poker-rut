@@ -776,8 +776,14 @@ function listen(){
       if(cur!=='lobby')showScreen('lobby');
       renderLobby();
     } else if(st==='playing'){
-      if(cur==='lobby'){startRound();}
-      else if(cur==='game'){renderGame();autoCheckDone();}
+      if(cur==='lobby'||cur==='result'){
+        resultsShown=false;
+        hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
+        startRound();
+      } else if(cur==='game'){
+        renderGame();
+        autoCheckDone();
+      }
     } else if(st==='confirming'){
       if(cur==='game'){renderGame();autoCheckDone();}
     } else if(st==='results'){
@@ -847,6 +853,8 @@ async function hostStart(){
 
 // ── START ROUND ──
 function startRound(){
+  // reset ก่อนเสมอ
+  hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
   const deals=roomData.deals||{};
   const players=roomData.players||{};
 
@@ -1266,6 +1274,7 @@ function showResults(){
 
 async function nextRound(){
   resultsShown=false;
+  hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
   await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{}});
 }
 
