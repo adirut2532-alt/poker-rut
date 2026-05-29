@@ -287,17 +287,18 @@ html,body{
 .fight-line{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;}
 .fight-p{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;}
 .fight-nm{font-size:12px;font-weight:800;text-align:center;color:#f0c040;}
-.fight-cards{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;}
+.fight-cards{display:flex;gap:2px;flex-wrap:nowrap;justify-content:center;width:100%;}
 .fight-card{
-  width:40px;height:56px;background:#fff;border-radius:7px;
+  flex:1 1 0;min-width:0;max-width:36px;aspect-ratio:5/7;
+  background:#fff;border-radius:5px;
   position:relative;overflow:hidden;
-  font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,.3);
-  border:1px solid rgba(0,0,0,.2);flex-shrink:0;
+  font-weight:900;box-shadow:0 2px 5px rgba(0,0,0,.3);
+  border:1px solid rgba(0,0,0,.2);
 }
 .fight-card.rc{color:#d11f1f;}
 .fight-card.bc{color:#1a1a1a;}
-.fight-card .cr{position:absolute;top:3px;left:4px;font-size:15px;line-height:.9;}
-.fight-card .cs{position:absolute;bottom:3px;right:4px;font-size:19px;line-height:1;}
+.fight-card .cr{position:absolute;top:2px;left:3px;font-size:13px;line-height:.9;}
+.fight-card .cs{position:absolute;bottom:2px;right:3px;font-size:15px;line-height:1;}
 .fight-hn{font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(200,160,40,.2);color:#f0c040;border:1px solid rgba(200,160,40,.3);}
 .fight-vs{font-size:13px;font-weight:900;color:#f0c040;align-self:center;padding-top:20px;}
 .rbadge{font-size:13px;font-weight:800;padding:4px 12px;border-radius:9px;white-space:nowrap;}
@@ -673,7 +674,14 @@ function calcScores(players,hands){
     a.roundScore+=ps;b.roundScore+=qs;
   }
   sc.forEach(s=>{if(n===4&&s._tw===n-1){s.isDarby=true;s.roundScore*=4;sc.forEach(o=>{if(o.id!==s.id)o.roundScore*=4;});}});
-  sc.forEach(s=>{if(h(s).foul){const pen=6*(n-1);s.roundScore=-pen;s.bonusLabel='⚠️ ฟาว';sc.forEach(o=>{if(o.id!==s.id)o.roundScore+=6;});}});
+  // ── FOUL (ฟาว) — คิดแบบจับคู่ zero-sum: คนฟาวจ่าย 6 ให้คู่ต่อสู้ที่ "ไม่ฟาว" แต่ละคน
+  sc.forEach(s=>{if(h(s).foul)s.bonusLabel='⚠️ ฟาว';});
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    const a=sc[i],b=sc[j],fa=h(a).foul,fb=h(b).foul;
+    if(fa&&fb)continue;            // ฟาวทั้งคู่ → ไม่แลกแต้ม
+    if(fa){a.roundScore-=6;b.roundScore+=6;}
+    else if(fb){b.roundScore-=6;a.roundScore+=6;}
+  }
   return sc;
 }
 
@@ -1391,7 +1399,7 @@ function showBattle(players,handsById,scores){
     const foulNote=(m.ha.foul||m.hb.foul)
       ?`<div style="text-align:center;font-size:11px;color:#ff6060;margin-bottom:6px">⚠️ ${m.ha.foul?m.a.name:''}${m.ha.foul&&m.hb.foul?' และ ':''}${m.hb.foul?m.b.name:''} ฟาว</div>`:'';
     const taluHTML=m.talu
-      ?`<div class="talu-banner" id="talu-${mi}">🔥 ตาลู! ${m.taluWinner.avatar} ${m.taluWinner.name} กินรวด 3 กอง (คะแนน x2)</div>`:'';
+      ?`<div class="talu-banner" id="talu-${mi}">🔫 ทะลุ! ${m.taluWinner.avatar} ${m.taluWinner.name} กินรวด 3 กอง (คะแนน x2)</div>`:'';
 
     html+=`<div class="b-section" id="bsec-${mi}">
       <div class="b-title">${m.a.avatar} ${m.a.name} &nbsp;⚔️&nbsp; ${m.b.avatar} ${m.b.name}</div>
