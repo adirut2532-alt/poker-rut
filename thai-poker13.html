@@ -8,24 +8,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap');
 
 :root {
-  /* Warm orange palette */
-  --bg:#ffffff;
-  --bg2:#f8f4ee;
+  --bg:#faf8f5;
+  --bg2:#f2ede6;
   --table:#e8d5b8;
   --table2:#ddc8a0;
-  --gold:#c07010;
-  --gold2:#a05808;
-  --red:#d03030;
-  --green:#207840;
-  --blue:#1870a8;
-  --orange:#d06010;
-  --border:rgba(160,100,20,0.18);
-  --border2:rgba(160,100,20,0.30);
+  --gold:#b85e00;
+  --gold2:#8a4200;
+  --red:#c42020;
+  --green:#1a7a3a;
+  --blue:#1460a0;
+  --orange:#b85e00;
+  --border:rgba(120,70,10,0.15);
+  --border2:rgba(120,70,10,0.25);
   --text:#1a0e00;
-  --muted:#8a5c30;
-  --card-r:#c82020;
-  --card-b:#1a1208;
-  --panel:rgba(240,220,190,0.85);
+  --muted:#7a4a18;
+  --card-r:#b81010;
+  --card-b:#0a0a18;
+  --panel:rgba(250,248,245,0.95);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -67,8 +66,8 @@ html,body{
 .card-fan{display:flex;justify-content:center;position:relative;height:80px;width:260px;}
 .fan-card{
   position:absolute;width:50px;height:70px;
-  background:linear-gradient(160deg,#fff 60%,#fff8f0);
-  border-radius:8px;border:1px solid rgba(160,100,20,.25);
+  background:linear-gradient(160deg,#fff 60%,#f8f8f0);
+  border-radius:8px;border:1px solid rgba(200,160,40,.35);
   display:flex;align-items:center;justify-content:center;
   font-size:17px;font-weight:800;
   box-shadow:0 6px 20px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.15);
@@ -175,7 +174,7 @@ html,body{
   border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;
   backdrop-filter:blur(8px);
 }
-.game-round{font-size:14px;color:#7a3800;font-weight:700;}
+.game-round{font-size:14px;color:#f0c040;font-weight:700;}
 .game-menu-btn{
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
   color:var(--text);padding:6px 12px;border-radius:10px;
@@ -193,8 +192,72 @@ html,body{
   .game-right{border-top:1px solid rgba(255,255,255,.07);overflow-y:auto;display:flex;flex-direction:column;}
 }
 
-/* table felt oval */
-.game-left::before{
+/* ── CASINO TABLE FELT ── */
+#game{
+  background:
+    radial-gradient(ellipse at 50% 40%, #1e6b1e 0%, #0d400d 50%, #081808 100%);
+}
+.game-left{
+  background:
+    radial-gradient(ellipse at 50% 50%, #1a5c1a 0%, #0d280d 100%);
+  position:relative;
+}
+.game-left::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='.4' fill='rgba(255,255,255,0.03)'/%3E%3C/svg%3E");
+  border-radius:inherit;
+}
+
+/* ── GOLD BORDER ON GAME HEADER ── */
+.game-header{
+  background:linear-gradient(180deg,#0d2d0d,#0a1f0a) !important;
+  border-bottom:1px solid rgba(150,80,0,.18) !important;
+  box-shadow:0 2px 12px rgba(200,144,32,.2);
+}
+
+/* ── CARD GLOW on drop zone ── */
+.drop-zone.dz-hover{
+  border-color:rgba(240,192,64,.6) !important;
+  background:rgba(200,160,40,.1) !important;
+  box-shadow:0 0 0 2px rgba(240,192,64,.2),inset 0 0 20px rgba(200,160,40,.05);
+}
+.drop-zone.dz-full{
+  border-color:rgba(64,232,128,.5);
+  background:rgba(20,160,64,.08);
+}
+
+/* ── BATTLE HEADER ── */
+.battle-header{
+  background:linear-gradient(180deg,#0d2d0d,#0a1f0a) !important;
+  border-bottom:1px solid rgba(150,80,0,.18) !important;
+}
+
+/* ── PHASE BAR gold glow ── */
+.phase-bar{
+  box-shadow:0 0 8px rgba(240,192,64,.15);
+}
+
+/* ── BIG CARD hover glow ── */
+.big-card:active{
+  box-shadow:0 0 0 3px rgba(240,192,64,.5),0 4px 12px rgba(0,0,0,.5) !important;
+}
+
+/* ── UNPLACED AREA ── */
+.unplaced-area{
+  background:rgba(0,0,0,.3) !important;
+  border:1px solid rgba(200,160,40,.15) !important;
+}
+
+/* ── SCORE NUM ── */
+.score-num{font-size:48px;font-weight:900;line-height:1;}
+
+/* ── ROW TAG ── */
+.row-tag{
+  color:#c8a860 !important;
+}
+
+/* ── WAITING dot ── */
+.dot-anim span{background:#f0c040 !important;}
   content:'';display:block;
   width:100%;height:4px;border-radius:50%;flex-shrink:0;
   background:radial-gradient(ellipse,rgba(200,120,40,.35) 0%,transparent 70%);
@@ -233,18 +296,18 @@ html,body{
 /* ── BIG CARDS (player hand) ── */
 .big-card{
   width:56px;height:78px;
-  background:#ffffff;
+  background:linear-gradient(160deg,#ffffff 70%,#f8f8f8);
   border-radius:9px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   font-weight:900;line-height:1;flex-shrink:0;
   border:1.5px solid rgba(150,80,0,.15);
-  box-shadow:0 2px 8px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.08);
+  box-shadow:0 4px 12px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.3);
   touch-action:none;position:relative;
 }
 .big-card .cr{font-size:21px;}
 .big-card .cs{font-size:16px;margin-top:2px;}
-.big-card.red-card{color:var(--card-r);}
-.big-card.black-card{color:var(--card-b);}
+.big-card.red-card{color:#b81010;}
+.big-card.black-card{color:#0a0a18;}
 .big-card.dragging-source{opacity:.3;}
 
 /* ── DROP ZONES ── */
@@ -300,7 +363,7 @@ html,body{
 .action-btns{
   display:flex;gap:7px;flex-wrap:nowrap;
   padding:8px 0;
-  padding-bottom:max(16px, env(safe-area-inset-bottom, 16px));
+  padding-bottom:max(24px, env(safe-area-inset-bottom, 24px));
   background:#faf8f5;
   position:sticky;bottom:0;
   flex-shrink:0;
@@ -419,7 +482,7 @@ html,body{
 .fight-player{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
 .fight-cards{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;}
 .fight-name{font-size:13px;font-weight:800;text-align:center;color:#1a0e00;}
-.fight-hand{font-size:12px;font-weight:700;text-align:center;padding:3px 10px;border-radius:8px;background:#fff3e0;color:#3a1800;border:1px solid rgba(150,80,0,.2);}
+.fight-hand{font-size:12px;font-weight:700;text-align:center;padding:3px 10px;border-radius:8px;background:#fff3e0;color:#4a1800;border:1px solid rgba(200,160,40,.35);}
 .fight-vs{font-size:14px;color:#9a6030;font-weight:800;flex-shrink:0;align-self:center;padding-top:24px;}
 .fight-result-badge{font-size:14px;font-weight:800;text-align:center;padding:5px 16px;border-radius:10px;flex-shrink:0;white-space:nowrap;}
 .fwin{background:#e0f5ea;color:#0e6030;border:1px solid rgba(20,120,60,.25);}
@@ -481,7 +544,7 @@ html,body{
 .modal{
   background:#faf8f5;
   border-radius:20px;padding:22px;width:100%;max-width:340px;
-  border:1px solid rgba(160,100,20,.25);
+  border:1px solid rgba(200,160,40,.35);
   box-shadow:0 20px 60px rgba(0,0,0,.4);
   max-height:85vh;overflow-y:auto;
   color:#2a1808;
@@ -501,7 +564,275 @@ html,body{
 .dot-anim span:nth-child(2){animation-delay:.15s;} .dot-anim span:nth-child(3){animation-delay:.3s;}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
 ::-webkit-scrollbar{width:4px;height:4px;} ::-webkit-scrollbar-thumb{background:rgba(150,80,0,.25);border-radius:4px;}
-</style>
+
+/* ══════════════════════════════════════════
+   ROUND TABLE LAYOUT — มุมมองรอบโต๊ะ
+══════════════════════════════════════════ */
+
+/* GAME SCREEN */
+#game{
+  background:radial-gradient(ellipse at 50% 40%,#1a5c1a 0%,#0d2d0d 70%,#081808 100%);
+  display:flex;flex-direction:column;
+}
+.game-header{
+  background:linear-gradient(180deg,rgba(5,20,5,.95),rgba(5,15,5,.9)) !important;
+  border-bottom:1px solid rgba(255,220,80,.25) !important;
+  padding:6px 12px !important;
+}
+.game-round-label{color:#f0c040 !important;}
+.game-menu-btn{
+  background:rgba(0,0,0,.3) !important;
+  border:1px solid rgba(255,220,80,.2) !important;
+  color:#f0c040 !important;
+}
+
+/* GAME BODY */
+.game-body-xp{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  position:relative;
+}
+
+/* TABLE AREA — ส่วนบน รอบโต๊ะ */
+.round-table{
+  flex:1;position:relative;display:flex;flex-direction:column;
+  padding:8px;gap:6px;min-height:0;overflow:hidden;
+}
+
+/* แถวบน — ผู้เล่นฝั่งตรงข้าม */
+.opp-top-row{
+  display:flex;justify-content:center;gap:8px;
+}
+/* แถวกลาง — ผู้เล่นซ้าย/ขวา */
+.opp-mid-row{
+  display:flex;justify-content:space-between;align-items:center;
+  flex:1;
+}
+/* พื้นที่ตรงกลางโต๊ะ */
+.table-center{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.table-felt{
+  width:90%;height:85%;
+  background:radial-gradient(ellipse at 50% 50%,rgba(30,100,30,.4) 0%,rgba(10,50,10,.2) 100%);
+  border-radius:50%;
+  border:2px solid rgba(255,220,80,.15);
+  box-shadow:inset 0 0 30px rgba(0,0,0,.3);
+  display:flex;align-items:center;justify-content:center;
+}
+.table-logo{
+  font-size:11px;color:rgba(255,220,80,.15);
+  font-weight:900;letter-spacing:2px;text-transform:uppercase;
+}
+
+/* OPPONENT BOX — กล่องผู้เล่นรอบโต๊ะ */
+.opp-box{
+  background:rgba(0,0,0,.5);
+  border-radius:14px;
+  padding:8px 10px;
+  border:1px solid rgba(255,220,80,.2);
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  position:relative;min-width:90px;max-width:140px;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
+.opp-box.side{max-width:100px;}
+
+/* AVATAR ใหญ่ขึ้น */
+.opp-avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(255,220,80,.3),rgba(200,140,20,.2));
+  border:2.5px solid rgba(255,220,80,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+.opp-avatar.side{width:36px;height:36px;font-size:20px;}
+
+.opp-name{
+  font-size:12px;font-weight:800;color:#fff8e8;
+  text-align:center;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.opp-chip-bar{
+  display:flex;align-items:center;gap:4px;
+  background:rgba(0,0,0,.4);
+  border-radius:8px;padding:3px 8px;
+  border:1px solid rgba(255,220,80,.2);
+}
+.opp-chip-icon{font-size:13px;}
+.opp-chip-val{font-size:12px;font-weight:900;color:#f0c040;}
+
+/* ไพ่คว่ำ — แนวนอน */
+.opp-cards-h{
+  display:flex;flex-direction:column;gap:2px;align-items:center;
+}
+.opp-row-h{display:flex;gap:2px;}
+.opp-card-h{
+  width:18px;height:26px;border-radius:3px;
+  background:linear-gradient(145deg,#2a6bd4,#1a4ba0);
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+  flex-shrink:0;
+}
+.opp-card-h.shuffle-anim{
+  animation:cardShuffle 0.9s ease-in-out infinite alternate;
+}
+@keyframes cardShuffle{
+  0%{transform:rotate(-4deg) translateY(0);}
+  50%{transform:rotate(4deg) translateY(-2px);}
+  100%{transform:rotate(-2deg) translateY(1px);}
+}
+
+/* ไพ่แนวตั้ง (ผู้เล่นซ้าย/ขวา) */
+.opp-cards-v{
+  display:flex;flex-direction:row;gap:2px;
+}
+.opp-col{display:flex;flex-direction:column;gap:2px;}
+.opp-card-v{
+  width:14px;height:20px;border-radius:2px;
+  background:linear-gradient(145deg,#2a6bd4,#1a4ba0);
+  border:1px solid rgba(255,255,255,.2);
+  flex-shrink:0;
+}
+.opp-card-v.shuffle-anim{
+  animation:cardShuffle 0.9s ease-in-out infinite alternate;
+}
+
+/* READY badge */
+.ready-badge{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:linear-gradient(135deg,#f0a820,#c07010);
+  color:#fff;font-size:12px;font-weight:900;
+  padding:4px 10px;border-radius:8px;
+  letter-spacing:.5px;
+  box-shadow:0 3px 10px rgba(240,168,32,.6);
+  border:1px solid rgba(255,255,255,.3);
+  pointer-events:none;white-space:nowrap;
+  z-index:10;
+}
+
+/* DIVIDER */
+.table-divider{
+  height:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,220,80,.4),transparent);
+  flex-shrink:0;
+}
+
+/* MY HAND AREA */
+.my-hand-xp{
+  background:linear-gradient(180deg,rgba(5,20,5,.98),rgba(3,12,3,1));
+  border-top:2px solid rgba(255,220,80,.3);
+  padding:8px 10px;
+  display:flex;flex-direction:column;
+  flex-shrink:0;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+}
+.my-info-bar{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.my-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(255,220,80,.3),rgba(200,140,20,.2));
+  border:2px solid rgba(255,220,80,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.my-name{font-size:14px;font-weight:800;color:#f0c040;flex:1;}
+.my-chip{font-size:11px;color:#c8a860;}
+.my-remaining{font-size:12px;color:#c8a860;font-weight:700;margin-left:auto;}
+
+/* ARRANGE ROWS */
+.xp-arrange-row{display:flex;align-items:stretch;gap:6px;margin-bottom:4px;}
+.xp-row-status{
+  width:28px;flex-shrink:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;
+}
+.xp-row-check{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;transition:all .2s;color:rgba(255,255,255,.3);
+}
+.xp-row-check.ok{
+  background:rgba(32,200,80,.25);
+  border-color:rgba(32,200,80,.6);
+  color:#40e880;
+}
+.xp-row-label{font-size:9px;color:#c8a860;font-weight:700;}
+
+/* DROP ZONE */
+.xp-dropzone{
+  flex:1;display:flex;flex-wrap:wrap;gap:3px;
+  background:rgba(0,0,0,.2);
+  border-radius:8px;padding:4px 6px;
+  border:1.5px dashed rgba(255,255,255,.12);
+  min-height:72px;align-content:flex-start;
+  transition:border-color .15s,background .15s;
+}
+.xp-dropzone.dz-hover{
+  border-color:rgba(240,192,64,.6) !important;
+  background:rgba(200,160,40,.1) !important;
+}
+.xp-dropzone.dz-full{
+  border-color:rgba(32,180,80,.4);
+  background:rgba(20,140,60,.08);
+}
+.xp-hand-tag{
+  font-size:10px;font-weight:700;
+  background:rgba(200,160,40,.25);color:#f0c040;
+  border-radius:5px;padding:1px 6px;
+  align-self:flex-end;
+  border:1px solid rgba(200,160,40,.3);
+  white-space:nowrap;margin-left:auto;
+}
+
+/* UNPLACED */
+.xp-unplaced{
+  background:rgba(0,0,0,.2);border-radius:10px;
+  padding:5px;border:1px dashed rgba(255,220,80,.2);
+  display:flex;flex-wrap:wrap;gap:4px;
+  min-height:68px;margin-bottom:6px;align-content:flex-start;
+}
+.xp-unplaced-label{font-size:11px;color:#c8a860;margin-bottom:4px;}
+
+/* ACTION BUTTONS */
+.xp-actions{display:flex;gap:6px;}
+.xp-btn{
+  flex:1;padding:10px;border:none;border-radius:10px;
+  font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;transition:transform .1s;
+}
+.xp-btn:active{transform:scale(.96);}
+.xp-btn-auto{background:rgba(255,255,255,.12);color:#fff8e8;border:1px solid rgba(255,255,255,.15);}
+.xp-btn-clear{background:rgba(255,255,255,.08);color:#c8a860;border:1px solid rgba(255,255,255,.1);}
+.xp-btn-ready{
+  background:linear-gradient(160deg,#f0a820,#c07010);
+  color:#fff;font-size:15px;font-weight:900;flex:2;
+  box-shadow:0 4px 0 #804808,0 6px 20px rgba(240,168,32,.4);
+  letter-spacing:.5px;
+}
+.xp-btn-foul{
+  background:linear-gradient(160deg,#e84040,#b02020);
+  color:#fff;font-size:13px;font-weight:800;flex:2;
+  box-shadow:0 3px 0 #700000;
+}
+.xp-validate{
+  font-size:11px;font-weight:700;text-align:center;
+  padding:4px 8px;border-radius:8px;margin-bottom:4px;
+}
+.xp-val-ok{background:rgba(32,180,80,.2);color:#40e880;border:1px solid rgba(32,180,80,.3);}
+.xp-val-warn{background:rgba(240,160,0,.15);color:#f0c040;border:1px solid rgba(240,160,0,.3);}
+
+/* WAITING */
+.xp-waiting{
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px;background:rgba(0,0,0,.3);
+  border-radius:12px;margin:4px 0;gap:6px;
+}
+.xp-wait-title{font-size:15px;font-weight:800;color:#f0c040;}
+.xp-wait-sub{font-size:11px;color:#c8a860;}
+.dot-anim span{background:#f0c040 !important;}</style>
 </head>
 <body>
 
@@ -938,132 +1269,196 @@ function dealRound(){
 ============================================================ */
 function renderGameScreen(){
   const body=document.getElementById('game-body');
-  const pIdx=G.currentArranging,hand=roundHands[pIdx];
-  const isLS=window.innerWidth>window.innerHeight;
+  const pIdx=G.currentArranging, hand=roundHands[pIdx];
+  const me=G.players[pIdx];
+  const opponents=G.players.filter((_,i)=>i!==pIdx);
+  const n=opponents.length;
 
-  /* opponents */
-  let oppHTML='';
-  G.players.filter((_,i)=>i!==pIdx).forEach(op=>{
+  // ── Opponent box — layout รอบโต๊ะ ──
+  function oppBox(op, side=false){
     const oh=roundHands[op.id];
-    oppHTML+=`<div class="player-zone">
-      <div class="zone-name" style="color:${op.color}">${op.avatar} ${op.name}
-        ${oh.done?`<span style="font-size:10px;color:var(--green)">✓ พร้อม</span>`:`<div class="dot-anim"><span></span><span></span><span></span></div>`}
-      </div>
-      <div class="row-lbl">หน้า</div><div class="cards-row">${miniRow(oh.done?oh.front:[],oh.done)}</div>
-      <div class="row-lbl">กลาง</div><div class="cards-row">${miniRow(oh.done?oh.mid:[],oh.done)}</div>
-      <div class="row-lbl">หลัง</div><div class="cards-row">${miniRow(oh.done?oh.back:[],oh.done)}</div>
-    </div>`;
-  });
+    const isDone=oh.done;
+    const chipVal=G.totalScores?.[op.id]||0;
+    const delay=(i)=>`animation-delay:${i*0.12}s`;
 
-  /* drop zones */
-  const dzRow=(row,cards,max,label)=>{
+    // ไพ่คว่ำ: ถ้า side ใช้ layout แนวตั้ง
+    let cardsHtml='';
+    if(side){
+      // แนวตั้ง — 3 คอลัมน์ (หน้า3/กลาง5/หลัง5)
+      cardsHtml=`<div class="opp-cards-v">
+        <div class="opp-col">${Array(3).fill(0).map((_,i)=>`<div class="opp-card-v ${isDone?'':'shuffle-anim'}" style="${delay(i)}"></div>`).join('')}</div>
+        <div class="opp-col">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-v ${isDone?'':'shuffle-anim'}" style="${delay(i+3)}"></div>`).join('')}</div>
+        <div class="opp-col">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-v ${isDone?'':'shuffle-anim'}" style="${delay(i+8)}"></div>`).join('')}</div>
+      </div>`;
+    } else {
+      // แนวนอน — 3 แถว
+      cardsHtml=`<div class="opp-cards-h">
+        <div class="opp-row-h">${Array(3).fill(0).map((_,i)=>`<div class="opp-card-h ${isDone?'':'shuffle-anim'}" style="${delay(i)}"></div>`).join('')}</div>
+        <div class="opp-row-h">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-h ${isDone?'':'shuffle-anim'}" style="${delay(i+3)}"></div>`).join('')}</div>
+        <div class="opp-row-h">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-h ${isDone?'':'shuffle-anim'}" style="${delay(i+8)}"></div>`).join('')}</div>
+      </div>`;
+    }
+
+    return `<div class="opp-box ${side?'side':''}">
+      <div class="opp-avatar ${side?'side':''}">${op.avatar}</div>
+      <div class="opp-name">${op.name}</div>
+      <div class="opp-chip-bar">
+        <span class="opp-chip-icon">🪙</span>
+        <span class="opp-chip-val">${chipVal>=0?'+':''}${chipVal}</span>
+      </div>
+      ${cardsHtml}
+      ${isDone?`<div class="ready-badge">✅ พร้อม</div>`:''}
+    </div>`;
+  }
+
+  // ── Layout รอบโต๊ะ ตาม n ผู้เล่น ──
+  function roundTableHTML(){
+    const n=opponents.length;
+    if(n===0) return `<div class="round-table"><div class="table-center"><div class="table-felt"><div class="table-logo">3 กอง กาญ</div></div></div></div>`;
+
+    if(n===1){
+      // ผู้เล่น 2 คน → คนเดียวอยู่บน
+      return `<div class="round-table">
+        <div class="opp-top-row">${oppBox(opponents[0])}</div>
+        <div class="table-center"><div class="table-felt"><div class="table-logo">3 กอง กาญ</div></div></div>
+      </div>`;
+    }
+    if(n===2){
+      // 3 คน → 1 บน + 1 ขวา
+      return `<div class="round-table">
+        <div class="opp-top-row">${oppBox(opponents[0])}</div>
+        <div class="opp-mid-row">
+          <div style="width:100px"></div>
+          <div class="table-center"><div class="table-felt"><div class="table-logo">3 กอง กาญ</div></div></div>
+          ${oppBox(opponents[1],true)}
+        </div>
+      </div>`;
+    }
+    // 4 คน → 1 บน + ซ้าย + ขวา
+    return `<div class="round-table">
+      <div class="opp-top-row">${oppBox(opponents[1])}</div>
+      <div class="opp-mid-row">
+        ${oppBox(opponents[0],true)}
+        <div class="table-center"><div class="table-felt"><div class="table-logo">3 กอง กาญ</div></div></div>
+        ${oppBox(opponents[2],true)}
+      </div>
+    </div>`;
+  }
+
+  // ── Drop zone ──
+  function dzRow(row,cards,max,label){
     const full=cards.length===max;
     const ev=full?evalHand(cards).name:'';
-    const cls=full?'dz-full':'';
-    // swap button: mid↔back when both full
+    const allPlaced2=hand.unplaced.length===0;
     const midFull=hand.mid.length===5, backFull=hand.back.length===5;
     const swapBtn=(row==='mid'&&midFull&&backFull)
-      ? `<button class="swap-btn" onclick="swapMidBack()" title="สลับ กลาง↔หลัง">⇅ สลับหลัง</button>`
-      : (row==='back'&&midFull&&backFull)
-      ? `<button class="swap-btn" onclick="swapMidBack()" title="สลับ หลัง↔กลาง">⇅ สลับกลาง</button>`
-      : '';
+      ?`<button class="swap-btn" onclick="swapMidBack()">⇅ สลับหลัง</button>`
+      :(row==='back'&&midFull&&backFull)
+      ?`<button class="swap-btn" onclick="swapMidBack()">⇅ สลับกลาง</button>`:'';
+    const isOk=full&&(row==='back'||true); // check per row
     const cardsHTML=cards.map((c,i)=>
       `<div class="big-card ${isRed(c)?'red-card':'black-card'}"
         data-source="${row}" data-idx="${i}"
         ontouchstart="onDragStart(event,this,'${row}',${i})"
         onmousedown="onDragStart(event,this,'${row}',${i})">
         <span class="cr">${c.rank}</span><span class="cs">${c.suit}</span>
-      </div>`
-    ).join('');
-    return `<div class="arrange-row">
-      <div class="row-tag">${label}<br><span style="font-size:9px;opacity:.4">(${max}ใบ)</span></div>
-      <div class="drop-zone ${cls}" data-zone="${row}"
+      </div>`).join('');
+    return `<div class="xp-arrange-row">
+      <div class="xp-row-status">
+        <div class="xp-row-check ${full?'ok':''}">${full?'✓':''}</div>
+        <div class="xp-row-label">${label}</div>
+      </div>
+      <div class="xp-dropzone ${full?'dz-full':''}" data-zone="${row}"
         ontouchend="onDropZone(event,this,'${row}')"
         onmouseup="onDropZone(event,this,'${row}')">
-        ${cards.length===0?`<span class="dz-label">ลากไพ่มาวาง</span>`:''}
+        ${cards.length===0?`<span style="font-size:11px;color:rgba(255,255,255,.2);padding:4px">ลากไพ่มาวาง</span>`:''}
         ${cardsHTML}
-        ${full?`<span class="hand-eval-tag">${ev}</span>`:''}
+        ${full?`<span class="xp-hand-tag">${ev}</span>`:''}
       </div>
       ${swapBtn}
     </div>`;
-  };
+  }
 
-  /* unplaced */
+  const allPlaced=hand.unplaced.length===0;
+  const isValid=allPlaced&&validArr(hand.front,hand.mid,hand.back);
+
+  // ── Waiting screen ──
+  if(hand.done){
+    const allDone=roundHands.every(h=>h.done);
+    body.innerHTML=`
+      <div class="game-body-xp">
+        ${roundTableHTML()}
+        <div class="table-divider"></div>
+        <div class="my-hand-xp">
+          <div class="xp-waiting">
+            <div class="xp-wait-title">✅ ยืนยันแล้ว</div>
+            <div class="xp-wait-sub">รอผู้เล่นอื่นจัดไพ่...</div>
+            <div class="dot-anim" style="justify-content:center"><span></span><span></span><span></span></div>
+            ${!allDone
+              ?`<button class="xp-btn xp-btn-auto" onclick="undoConfirm()" style="max-width:160px;margin-top:4px;font-size:13px">↩ จัดใหม่</button>`
+              :`<div style="font-size:12px;color:#40e880;font-weight:700">ทุกคนพร้อมแล้ว! 🎉</div>`}
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Normal arrange ──
+  const validateHTML=allPlaced
+    ?(isValid
+      ?`<div class="xp-validate xp-val-ok">✅ จัดถูกต้อง — หลัง ≥ กลาง ≥ หน้า</div>`
+      :`<div class="xp-validate xp-val-warn">⚠️ ไพ่ฟาว! ถ้ายืนยันโดน -6 ทุกคน</div>`)
+    :'';
+
+  const confirmBtn=allPlaced
+    ?(isValid
+      ?`<button class="xp-btn xp-btn-ready" onclick="confirmArrange()">✅ พร้อม!</button>`
+      :`<button class="xp-btn xp-btn-foul" onclick="confirmFoul()">⚠️ ยืนยัน (ฟาว)</button>`)
+    :`<button class="xp-btn xp-btn-ready" disabled style="opacity:.4">วางไพ่ให้ครบก่อน</button>`;
+
   const unplacedHTML=`
-    <div class="row-lbl" style="margin:8px 0 5px">🖐️ ลากไพ่ไปวางในช่อง (${hand.unplaced.length} ใบ)</div>
-    <div class="unplaced-area" data-zone="unplaced"
+    <div class="xp-unplaced-label">🖐️ ไพ่ในมือ (${hand.unplaced.length} ใบ)</div>
+    <div class="xp-unplaced" data-zone="unplaced"
       ontouchend="onDropZone(event,this,'unplaced')"
       onmouseup="onDropZone(event,this,'unplaced')">
-      ${hand.unplaced.length===0?`<span style="font-size:12px;color:rgba(255,255,255,.2);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)">วางไพ่ที่นี่เพื่อคืน</span>`:''}
+      ${hand.unplaced.length===0?`<span style="font-size:11px;color:rgba(255,255,255,.15);padding:4px">วางไพ่ที่นี่เพื่อคืน</span>`:''}
       ${hand.unplaced.map((c,i)=>
         `<div class="big-card ${isRed(c)?'red-card':'black-card'}"
           data-source="unplaced" data-idx="${i}"
           ontouchstart="onDragStart(event,this,'unplaced',${i})"
           onmousedown="onDragStart(event,this,'unplaced',${i})">
           <span class="cr">${c.rank}</span><span class="cs">${c.suit}</span>
-        </div>`
-      ).join('')}
+        </div>`).join('')}
     </div>`;
 
-  const allPlaced=hand.unplaced.length===0;
-  const isValid=allPlaced&&validArr(hand.front,hand.mid,hand.back);
+  const nClass=['','n2','n3','n4'][opponents.length]||'n2';
+  const chipVal=G.totalScores?.[me.id]||0;
 
-  // ถ้า done แล้ว (รอคนอื่น) — แสดงหน้ารอ + ปุ่มจัดใหม่
-  if(hand.done){
-    const allDone=roundHands.every(h=>h.done);
-    const handArea=`<div class="player-hand-area">
-      <div style="text-align:center;padding:20px 10px">
-        <div style="font-size:18px;font-weight:700;color:#8a4800;margin-bottom:8px">✅ ยืนยันแล้ว รอผู้เล่นอื่น...</div>
-        <div class="dot-anim" style="justify-content:center;margin-bottom:16px"><span></span><span></span><span></span></div>
-        ${!allDone?`<button class="btn btn-gray btn-sm" onclick="undoConfirm()" style="margin-top:4px">↩ จัดใหม่</button>`
-        :`<div style="font-size:13px;color:#8a5c30">ทุกคนพร้อมแล้ว กำลังเปิดไพ่...</div>`}
+  body.innerHTML=`
+    <div class="game-body-xp">
+      ${roundTableHTML()}
+      <div class="table-divider"></div>
+      <div class="my-hand-xp">
+        <div class="my-info-bar">
+          <div class="my-avatar">${me.avatar}</div>
+          <div>
+            <div class="my-name">${me.name}</div>
+            <div class="my-chip">🪙 ${chipVal>=0?'+':''}${chipVal}</div>
+          </div>
+          <div class="my-remaining">เหลือ ${hand.unplaced.length} ใบ</div>
+        </div>
+        ${dzRow('front',hand.front,3,'หน้า')}
+        ${dzRow('mid',hand.mid,5,'กลาง')}
+        ${dzRow('back',hand.back,5,'หลัง')}
+        ${unplacedHTML}
+        ${validateHTML}
+        <div class="xp-actions">
+          <button class="xp-btn xp-btn-auto" onclick="autoArrange()">🔀 จัดให้</button>
+          <button class="xp-btn xp-btn-clear" onclick="clearArrange()">↩ ล้าง</button>
+          ${confirmBtn}
+        </div>
       </div>
     </div>`;
-    const phaseBar=`<div class="phase-bar">⏳ รอผู้เล่นอื่นจัดไพ่...</div>`;
-    const oppBlock=`<div class="opponent-zones">${oppHTML||''}</div>`;
-    body.innerHTML=`<div class="game-left">${phaseBar}${oppBlock}</div><div class="game-right">${handArea}</div>`;
-    return;
-  }
-
-  const validateHTML=allPlaced
-    ? isValid
-      ? `<div class="validate-msg validate-ok">✅ จัดถูกต้อง — หลัง ≥ กลาง ≥ หน้า</div>`
-      : `<div class="validate-msg validate-warn">⚠️ ไพ่ฟาว! จัดผิดกติกา หลัง ≥ กลาง ≥ หน้า — ถ้ายืนยันจะโดน -6 ทุกคน</div>`
-    : '';
-  const confirmBtn=allPlaced
-    ? isValid
-      ? `<button class="btn btn-sm btn-gold" style="flex:1" onclick="confirmArrange()">✅ ยืนยัน</button>`
-      : `<button class="btn btn-sm btn-red" style="flex:1" onclick="confirmFoul()">⚠️ ยืนยัน (ไพ่ฟาว -6)</button>`
-    : '';
-  const actionHTML=`<div class="action-btns">
-    <button class="btn btn-sm btn-gray" style="flex:1" onclick="autoArrange()">🔀 จัดให้</button>
-    <button class="btn btn-sm btn-gray" style="flex:1" onclick="clearArrange()">↩ ล้าง</button>
-    ${confirmBtn}
-  </div>`;
-
-  const handArea=`<div class="player-hand-area">
-    <div class="hand-header">
-      <div class="hand-title">${G.players[pIdx].avatar} ${G.players[pIdx].name}</div>
-      <div style="font-size:12px;color:#8a5c30;font-weight:600">เหลือ ${hand.unplaced.length} ใบ</div>
-    </div>
-    <div class="arrange-area">
-      ${dzRow('front',hand.front,3,'หน้า')}
-      ${dzRow('mid',hand.mid,5,'กลาง')}
-      ${dzRow('back',hand.back,5,'หลัง')}
-    </div>
-    ${unplacedHTML}
-    ${validateHTML}
-    ${actionHTML}
-  </div>`;
-
-  const phaseBar=`<div class="phase-bar">🃏 ${G.players[pIdx].avatar} ${G.players[pIdx].name} กำลังจัดไพ่</div>`;
-  const oppBlock=`<div class="opponent-zones">${oppHTML||'<div style="font-size:12px;color:var(--muted);padding:8px">ไม่มีคู่แข่ง</div>'}</div>`;
-
-  if(isLS){
-    body.innerHTML=`<div class="game-left">${phaseBar}${oppBlock}</div><div class="game-right">${handArea}</div>`;
-  }else{
-    body.innerHTML=`<div class="game-left">${phaseBar}${oppBlock}</div><div class="game-right">${handArea}</div>`;
-  }
 }
 
 function miniRow(cards,revealed){
@@ -1620,7 +2015,7 @@ function startBattle(res){
         display:flex;flex-direction:column;align-items:center;justify-content:center;
         font-weight:900;line-height:1;
         box-shadow:0 2px 6px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
-        border:1.5px solid rgba(150,80,0,.12);
+        border:1px solid rgba(150,80,0,.15);
         color:${isRed(c)?'#b81010':'#0a0a18'}">
         <span style="font-size:17px;line-height:1">${c.rank}</span>
         <span style="font-size:13px;margin-top:2px">${c.suit}</span>

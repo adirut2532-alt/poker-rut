@@ -142,7 +142,7 @@ html,body{
   background:linear-gradient(180deg,rgba(5,20,5,.98),rgba(3,12,3,1));
   border-top:2px solid rgba(255,220,80,.3);
   padding:8px 10px;display:flex;flex-direction:column;flex-shrink:0;
-  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  padding-bottom:calc(20px + env(safe-area-inset-bottom,20px));
 }
 .my-info{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
 .my-av{
@@ -212,7 +212,7 @@ html,body{
 .val-ok{background:rgba(32,180,80,.2);color:#40e880;border:1px solid rgba(32,180,80,.3);}
 .val-warn{background:rgba(240,160,0,.15);color:#f0c040;border:1px solid rgba(240,160,0,.3);}
 
-.actions{display:flex;gap:6px;}
+.actions{display:flex;gap:6px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px));}
 .abtn{
   flex:1;padding:10px;border:none;border-radius:10px;
   font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
@@ -466,6 +466,7 @@ html,body{
 <!-- GAME -->
 <div id="game" class="screen">
   <div class="hdr">
+    <button class="hdr-btn" onclick="confirmLeave()">🚪</button>
     <div class="hdr-title">🃏 3 กอง กาญ</div>
     <div class="hdr-room" id="game-room-lbl">รอบ 1</div>
     <button class="hdr-btn" onclick="showScoreboard()">📊</button>
@@ -476,6 +477,7 @@ html,body{
 <!-- BATTLE -->
 <div id="battle" class="screen">
   <div class="hdr">
+    <button class="hdr-btn" onclick="confirmLeave()">🚪</button>
     <div class="hdr-title">⚔️ เปิดไพ่สู้</div>
     <button class="hdr-btn" onclick="showScreen('battle');document.getElementById('battle-body').scrollTop=0">↑ บนสุด</button>
   </div>
@@ -711,14 +713,18 @@ function renderLobby(){
 
 async function hostStart(){
   if(!isHost)return;
-  const players=Object.values(roomData.players||{});
-  if(players.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
-  // สร้างสำรับและแจกไพ่
+  const allPlayers=Object.values(roomData.players||{});
+  // เฉพาะผู้เล่นจริง ไม่นับ spectator/queue
+  const activePlayers=allPlayers.filter(p=>!p.isSpectator&&!p.isQueue);
+  if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
+
+  // แจกไพ่เฉพาะ active players
   const deck=shuffle(makeDeck());
   const deals={};
-  players.forEach((p,i)=>{
+  activePlayers.forEach((p,i)=>{
     deals[p.id]=deck.slice(i*13,(i+1)*13);
   });
+
   await db.collection('rooms').doc(roomId).update({
     status:'playing',
     round:(roomData.round||0)+1,
@@ -732,15 +738,47 @@ async function hostStart(){
 function startRound(){
   const deals=roomData.deals||{};
   const myCards=deals[myId]||[];
+  const myRole=(roomData.players||{})[myId];
+
+  // spectator/queue ไม่ได้รับไพ่ → ดูอย่างเดียว
+  if(!myCards.length||myRole?.isSpectator||myRole?.isQueue){
+    document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);
+    showScreen('game');
+    initChat();
+    // แสดง spectator view
+    renderSpectatorView();
+    return;
+  }
+
   hand={
     front:[],mid:[],back:[],
-    unplaced:[...myCards].sort((a,b)=>b.val-a.val||(SUIT_RANK[a.suit]-SUIT_RANK[b.suit])),
+    unplaced:[...myCards].sort((a,b)=>b.val-a.val||(SUIT_RANK[b.suit]-SUIT_RANK[a.suit])),
     done:false,foul:false
   };
   document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);
   showScreen('game');
   initChat();
   renderGame();
+}
+
+function renderSpectatorView(){
+  const body=document.getElementById('game-body');
+  body.innerHTML=`
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;">
+      <div style="font-size:48px">👁</div>
+      <div style="font-size:16px;font-weight:800;color:#f0c040">กำลังดูอยู่</div>
+      <div style="font-size:12px;color:#c8a860;text-align:center">รอบที่ ${roomData.round||1} กำลังเล่น</div>
+      <div style="background:rgba(0,0,0,.3);border-radius:14px;padding:14px;width:100%;max-width:320px;border:1px solid rgba(255,220,80,.2);">
+        ${Object.values(roomData.players||{}).filter(p=>!p.isSpectator&&!p.isQueue).map(p=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,220,80,.08)">
+            <span style="font-size:18px">${p.avatar||'🎴'}</span>
+            <span style="font-size:13px;font-weight:700;flex:1">${p.name}</span>
+            <span style="font-size:11px;color:${(roomData.hands||{})[p.id]?.done?'#40e880':'#c8a860'}">
+              ${(roomData.hands||{})[p.id]?.done?'✅ พร้อม':'⏳ จัดไพ่...'}
+            </span>
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 // ── RENDER GAME ──
@@ -812,7 +850,9 @@ function renderGame(){
 
   // Waiting
   if(hand.done){
-    const allDone=Object.values(roomData.hands||{}).length===players.length&&Object.values(roomData.hands||{}).every(h=>h.done);
+    const deals=roomData.deals||{};
+    const dealedIds=Object.keys(deals);
+    const allDone=dealedIds.length>0&&dealedIds.every(id=>(roomData.hands||{})[id]?.done);
     body.innerHTML=`
       <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
         ${tableHTML()}
@@ -1005,9 +1045,11 @@ async function undoConfirm(){
 async function checkAllDone(){
   const snap=await db.collection('rooms').doc(roomId).get();
   const data=snap.data();
-  const players=Object.keys(data.players||{});
+  const deals=data.deals||{};
   const hands=data.hands||{};
-  const allDone=players.every(id=>hands[id]?.done);
+  const dealedIds=Object.keys(deals);
+  if(!dealedIds.length) return;
+  const allDone=dealedIds.every(id=>hands[id]?.done);
   if(allDone&&isHost){
     await db.collection('rooms').doc(roomId).update({status:'results'});
   }
@@ -1087,16 +1129,47 @@ function showScoreboard(){
 
 async function leaveRoom(){
   if(unsub)unsub();
+  if(chatUnsub)chatUnsub();
   try{
+    const snap=await db.collection('rooms').doc(roomId).get();
+    const data=snap.data()||{};
     const updates={};
+    // ถ้าออกระหว่างเกม และยังไม่ได้ยืนยัน → บันทึกเป็นฟาว
+    if((data.status==='playing')&&data.deals&&data.deals[myId]&&!data.hands?.[myId]?.done){
+      updates[`hands.${myId}`]={front:[],mid:[],back:[],done:true,foul:true};
+    }
     updates[`players.${myId}`]=firebase.firestore.FieldValue.delete();
     await db.collection('rooms').doc(roomId).update(updates);
+    // ถ้าออกแล้วยังมีคนอื่นอยู่ ตรวจว่าทุกคนเสร็จแล้วไหม
+    if(data.status==='playing') await checkAllDone();
   }catch(e){}
-  if(chatUnsub)chatUnsub();
   location.href='room.html';
 }
 
-// ── CHAT ──
+function confirmLeave(){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:320px;font-family:'Kanit',sans-serif;text-align:center;">
+      <div style="font-size:36px;margin-bottom:10px">🚪</div>
+      <div style="font-size:18px;font-weight:900;color:#8a4000;margin-bottom:6px">ออกจากเกม?</div>
+      <div style="font-size:13px;color:#7a4a18;margin-bottom:20px;line-height:1.6">
+        ถ้าออกระหว่างเกม<br>ไพ่ของคุณจะถูกนับเป็น <b style="color:#c02020">ฟาว (-6)</b><br>ให้ผู้เล่นที่เหลือทุกคน
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="this.closest('div[style]').remove()"
+          style="flex:1;padding:12px;border:1px solid rgba(150,80,0,.2);border-radius:12px;background:#f5f0e8;color:#7a4a18;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">
+          ← อยู่ต่อ
+        </button>
+        <button onclick="leaveRoom()"
+          style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(160deg,#e84040,#b02020);color:#fff;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">
+          ออกเลย
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+}
 let chatUnsub=null;
 let chatOpen=false;
 let unreadCount=0;
