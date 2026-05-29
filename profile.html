@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3 กอง กาญ — โปรไฟล์</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{
+  font-family:'Kanit',sans-serif;min-height:100vh;
+  background:linear-gradient(180deg,#fff8ee 0%,#faf0e0 100%);
+  padding:0 0 40px;
+}
+
+/* HEADER */
+.hdr{
+  background:#fff;border-bottom:1px solid rgba(180,100,20,.12);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:10;
+}
+.back-btn{
+  background:none;border:none;font-size:20px;cursor:pointer;
+  color:#b87840;padding:4px;
+}
+.hdr-title{font-size:16px;font-weight:800;color:#8a4000;flex:1;}
+
+/* PROFILE HERO */
+.hero{
+  display:flex;flex-direction:column;align-items:center;
+  padding:28px 20px 20px;
+  background:linear-gradient(180deg,#fff8ee,#faf0e0);
+  border-bottom:1px solid rgba(180,100,20,.1);
+}
+.av-wrap{position:relative;margin-bottom:12px;}
+.av-big{
+  width:88px;height:88px;border-radius:50%;
+  background:#fff3e0;border:3px solid rgba(192,112,16,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:52px;
+  box-shadow:0 4px 16px rgba(180,100,20,.15);
+}
+.av-edit-btn{
+  position:absolute;bottom:0;right:0;
+  width:28px;height:28px;border-radius:50%;
+  background:#c07010;border:2px solid #fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
+}
+.hero-name{font-size:22px;font-weight:900;color:#1a0e00;}
+.hero-chip{
+  display:flex;align-items:center;gap:5px;margin-top:5px;
+  background:rgba(192,112,16,.1);border-radius:10px;
+  padding:4px 12px;font-size:13px;font-weight:700;color:#8a4000;
+}
+
+/* SECTION */
+.section{margin:16px 16px 0;}
+.section-title{font-size:12px;font-weight:800;color:#b87840;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+.field-card{background:#fff;border-radius:14px;border:1px solid rgba(180,100,20,.12);overflow:hidden;}
+.field-row{
+  padding:13px 16px;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(180,100,20,.07);
+}
+.field-row:last-child{border-bottom:none;}
+.field-icon{font-size:20px;flex-shrink:0;}
+.field-info{flex:1;}
+.field-label{font-size:11px;color:#b87840;font-weight:700;}
+.field-val{font-size:15px;font-weight:700;color:#1a0e00;margin-top:1px;}
+.field-btn{
+  background:#fff3e0;border:1px solid rgba(192,112,16,.2);
+  border-radius:8px;padding:5px 12px;
+  font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;
+  color:#8a4000;cursor:pointer;flex-shrink:0;
+}
+.field-btn:active{transform:scale(.96);}
+
+/* EMOJI PICKER */
+.emoji-picker{
+  display:none;flex-wrap:wrap;gap:8px;padding:14px;
+  background:#fff;border-radius:14px;
+  border:1px solid rgba(180,100,20,.12);
+  margin-top:8px;
+}
+.emoji-picker.show{display:flex;}
+.ep-item{
+  font-size:28px;cursor:pointer;padding:6px;border-radius:10px;
+  transition:background .1s;
+}
+.ep-item:active{background:#fff3e0;}
+.ep-item.selected{background:#fff3e0;outline:2px solid #c07010;}
+
+/* MODAL OVERLAY */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.4);z-index:100;
+  align-items:flex-end;justify-content:center;
+}
+.overlay.show{display:flex;}
+.modal{
+  background:#fff;border-radius:20px 20px 0 0;
+  padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));
+  width:100%;max-width:480px;
+}
+.modal-title{font-size:17px;font-weight:800;color:#8a4000;margin-bottom:16px;}
+.modal-input{
+  width:100%;padding:12px 14px;
+  background:#faf6f0;border:1.5px solid rgba(180,100,20,.2);
+  border-radius:12px;font-family:'Kanit',sans-serif;
+  font-size:15px;font-weight:600;color:#1a0e00;outline:none;
+  margin-bottom:8px;
+}
+.modal-input:focus{border-color:#c07010;background:#fff;}
+.modal-err{font-size:12px;font-weight:700;color:#c02020;min-height:18px;margin-bottom:10px;}
+.modal-btns{display:flex;gap:8px;}
+.mbtn{
+  flex:1;padding:12px;border:none;border-radius:12px;
+  font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;
+}
+.mbtn-cancel{background:#f0ebe3;color:#8a6040;}
+.mbtn-save{background:linear-gradient(160deg,#f0a820,#c07010);color:#fff;box-shadow:0 3px 0 #804808;}
+.mbtn-save:active{transform:translateY(2px);box-shadow:0 1px 0 #804808;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a0e00;color:#fff;
+  padding:10px 20px;border-radius:12px;
+  font-size:13px;font-weight:700;
+  opacity:0;transition:all .3s;white-space:nowrap;
+  pointer-events:none;z-index:200;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* DANGER ZONE */
+.logout-btn{
+  margin:20px 16px 0;width:calc(100% - 32px);
+  padding:13px;border:none;border-radius:14px;
+  font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;
+  background:#fff;color:#c02020;
+  border:1px solid rgba(192,20,20,.2);cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <button class="back-btn" onclick="goBack()">←</button>
+  <div class="hdr-title">โปรไฟล์</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="av-wrap">
+    <div class="av-big" id="av-big">🦊</div>
+    <div class="av-edit-btn" onclick="toggleEmojiPicker()">✏️</div>
+  </div>
+  <div class="hero-name" id="hero-name">กำลังโหลด...</div>
+  <div class="hero-chip"><span>🪙</span><span id="hero-chip">0</span></div>
+</div>
+
+<!-- EMOJI PICKER -->
+<div class="section">
+  <div id="emoji-picker" class="emoji-picker">
+    <!-- จะ render ด้วย JS -->
+  </div>
+</div>
+
+<!-- INFO SECTION -->
+<div class="section">
+  <div class="section-title">ข้อมูลส่วนตัว</div>
+  <div class="field-card">
+    <div class="field-row">
+      <div class="field-icon">😄</div>
+      <div class="field-info">
+        <div class="field-label">Avatar</div>
+        <div class="field-val" id="field-av">🦊</div>
+      </div>
+      <button class="field-btn" onclick="toggleEmojiPicker()">เปลี่ยน</button>
+    </div>
+    <div class="field-row">
+      <div class="field-icon">👤</div>
+      <div class="field-info">
+        <div class="field-label">ชื่อ</div>
+        <div class="field-val" id="field-name">—</div>
+      </div>
+      <button class="field-btn" onclick="openChangeName()">เปลี่ยน</button>
+    </div>
+    <div class="field-row">
+      <div class="field-icon">🔐</div>
+      <div class="field-info">
+        <div class="field-label">รหัสผ่าน</div>
+        <div class="field-val">••••••</div>
+      </div>
+      <button class="field-btn" onclick="openChangePwd()">เปลี่ยน</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="section">
+  <div class="section-title">สถิติ</div>
+  <div class="field-card">
+    <div class="field-row">
+      <div class="field-icon">🏆</div>
+      <div class="field-info"><div class="field-label">คะแนนสะสม</div><div class="field-val" id="stat-score">0</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-icon">🎮</div>
+      <div class="field-info"><div class="field-label">เล่นทั้งหมด</div><div class="field-val" id="stat-games">0 รอบ</div></div>
+    </div>
+  </div>
+</div>
+
+<button class="logout-btn" onclick="logout()">🚪 ออกจากระบบ</button>
+
+<!-- MODAL: เปลี่ยนชื่อ -->
+<div class="overlay" id="modal-name">
+  <div class="modal">
+    <div class="modal-title">✏️ เปลี่ยนชื่อ</div>
+    <input type="text" id="new-name" class="modal-input" placeholder="ชื่อใหม่" maxlength="12">
+    <div class="modal-err" id="name-err"></div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modal-name')">ยกเลิก</button>
+      <button class="mbtn mbtn-save" onclick="saveName()">บันทึก ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: เปลี่ยนรหัสผ่าน -->
+<div class="overlay" id="modal-pwd">
+  <div class="modal">
+    <div class="modal-title">🔐 เปลี่ยนรหัสผ่าน</div>
+    <input type="password" id="old-pwd" class="modal-input" placeholder="รหัสผ่านเดิม" maxlength="20">
+    <input type="password" id="new-pwd" class="modal-input" placeholder="รหัสผ่านใหม่" maxlength="20">
+    <input type="password" id="new-pwd2" class="modal-input" placeholder="ยืนยันรหัสผ่านใหม่" maxlength="20">
+    <div class="modal-err" id="pwd-err"></div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modal-pwd')">ยกเลิก</button>
+      <button class="mbtn mbtn-save" onclick="savePwd()">บันทึก ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+});
+const db=firebase.firestore();
+
+const EMOJIS=['🦊','🐯','🐻','🐼','🐶','🐱','🐸','🦁','🐺','🦄','🐮','🐷','🐙','🦋','🦅','🦆','🐬','🐧','🦊','🎭','👑','🎪','🤠','🥷','👻','🤖','👾','🎯','🃏','🎰'];
+
+let myData=null;
+let myIdx=-1;
+let allMembers=[];
+
+// ── โหลดข้อมูล ──
+async function loadProfile(){
+  const session=JSON.parse(sessionStorage.getItem('player')||'null');
+  const p=new URLSearchParams(location.search);
+  const nameParam=p.get('name');
+  const loginName=session?.name||nameParam;
+  if(!loginName){location.href='login.html';return;}
+
+  try{
+    const snap=await db.collection('admin').doc('data').get();
+    if(!snap.exists){showErr();return;}
+    allMembers=snap.data().members||[];
+    myIdx=allMembers.findIndex(m=>m.name===loginName);
+    if(myIdx===-1){showErr();return;}
+    myData={...allMembers[myIdx]};
+    renderProfile();
+    renderEmojiPicker();
+  }catch(e){showErr();}
+}
+
+function showErr(){
+  document.getElementById('hero-name').textContent='โหลดข้อมูลไม่ได้';
+}
+
+function renderProfile(){
+  document.getElementById('av-big').textContent=myData.avatar||'🎴';
+  document.getElementById('hero-name').textContent=myData.name;
+  document.getElementById('hero-chip').textContent=(myData.chips>=0?'+':'')+(myData.chips||0);
+  document.getElementById('field-av').textContent=myData.avatar||'🎴';
+  document.getElementById('field-name').textContent=myData.name;
+  document.getElementById('stat-score').textContent=(myData.chips>=0?'+':'')+(myData.chips||0);
+  document.getElementById('stat-games').textContent=(myData.games||0)+' รอบ';
+}
+
+function renderEmojiPicker(){
+  const picker=document.getElementById('emoji-picker');
+  picker.innerHTML=EMOJIS.map(e=>`
+    <div class="ep-item ${e===myData.avatar?'selected':''}" onclick="selectEmoji('${e}')">${e}</div>
+  `).join('');
+}
+
+function toggleEmojiPicker(){
+  document.getElementById('emoji-picker').classList.toggle('show');
+}
+
+async function selectEmoji(e){
+  myData.avatar=e;
+  document.getElementById('av-big').textContent=e;
+  document.getElementById('field-av').textContent=e;
+  renderEmojiPicker();
+  document.getElementById('emoji-picker').classList.remove('show');
+  await saveToFirebase();
+  showToast('เปลี่ยน Avatar แล้ว '+e);
+}
+
+// ── เปลี่ยนชื่อ ──
+function openChangeName(){
+  document.getElementById('new-name').value=myData.name;
+  document.getElementById('name-err').textContent='';
+  document.getElementById('modal-name').classList.add('show');
+  setTimeout(()=>document.getElementById('new-name').focus(),200);
+}
+
+async function saveName(){
+  const n=document.getElementById('new-name').value.trim();
+  if(!n){document.getElementById('name-err').textContent='กรุณากรอกชื่อครับ';return;}
+  if(n.length<2){document.getElementById('name-err').textContent='ชื่อต้องมีอย่างน้อย 2 ตัวอักษรครับ';return;}
+  const exists=allMembers.some((m,i)=>m.name===n&&i!==myIdx);
+  if(exists){document.getElementById('name-err').textContent='ชื่อนี้มีคนใช้แล้วครับ';return;}
+  myData.name=n;
+  closeModal('modal-name');
+  await saveToFirebase();
+  renderProfile();
+  sessionStorage.setItem('player',JSON.stringify({id:myData.id||myData.name,name:myData.name,avatar:myData.avatar}));
+  showToast('เปลี่ยนชื่อเป็น "'+n+'" แล้ว ✓');
+}
+
+// ── เปลี่ยนรหัสผ่าน ──
+function openChangePwd(){
+  document.getElementById('old-pwd').value='';
+  document.getElementById('new-pwd').value='';
+  document.getElementById('new-pwd2').value='';
+  document.getElementById('pwd-err').textContent='';
+  document.getElementById('modal-pwd').classList.add('show');
+  setTimeout(()=>document.getElementById('old-pwd').focus(),200);
+}
+
+async function savePwd(){
+  const old=document.getElementById('old-pwd').value;
+  const n1=document.getElementById('new-pwd').value;
+  const n2=document.getElementById('new-pwd2').value;
+  if(old!==myData.password){document.getElementById('pwd-err').textContent='❌ รหัสผ่านเดิมไม่ถูกต้องครับ';return;}
+  if(!n1||n1.length<4){document.getElementById('pwd-err').textContent='รหัสผ่านใหม่ต้องมีอย่างน้อย 4 ตัวครับ';return;}
+  if(n1!==n2){document.getElementById('pwd-err').textContent='รหัสผ่านใหม่ไม่ตรงกันครับ';return;}
+  myData.password=n1;
+  closeModal('modal-pwd');
+  await saveToFirebase();
+  showToast('เปลี่ยนรหัสผ่านแล้ว ✓');
+}
+
+// ── บันทึกลง Firebase ──
+async function saveToFirebase(){
+  allMembers[myIdx]={...allMembers[myIdx],...myData};
+  try{
+    await db.collection('admin').doc('data').update({members:allMembers});
+  }catch(e){showToast('⚠️ บันทึกไม่สำเร็จ: '+e.message);}
+}
+
+// ── Utils ──
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);
+}
+function goBack(){
+  const ref=document.referrer;
+  if(ref)history.back();else location.href='room.html';
+}
+function logout(){
+  sessionStorage.removeItem('player');
+  location.href='login.html';
+}
+
+// close modal on overlay click
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');});
+});
+
+loadProfile();
+</script>
+</body>
+</html>
