@@ -453,7 +453,7 @@ function openGame(data){
     myId:myId,
     myName:encodeURIComponent(myName),
   });
-  window.location.href='game-room.html?'+params.toString();
+  window.location.href='game-v2.html?'+params.toString();
 }
 
 // ── WAITING (after confirm) ──
@@ -475,7 +475,7 @@ async function undoConfirm(){
   updates[`players.${myId}.ready`]=false;
   updates['status']='playing';
   await db.collection('rooms').doc(roomId).update(updates);
-  window.location.href='game-room.html?room='+roomId+'&myId='+myId+'&myName='+encodeURIComponent(myName);
+  window.location.href='game-v2.html?room='+roomId+'&myId='+myId+'&myName='+encodeURIComponent(myName);
 }
 
 async function checkAllDone(){
