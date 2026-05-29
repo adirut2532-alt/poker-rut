@@ -800,46 +800,47 @@ function autoCheckDone(){
 // ── LOBBY ──
 function renderLobby(){
   const players=Object.entries(roomData.players||{});
+
+  // ตรวจ isHost ใหม่ทุกครั้ง — หาจาก myId หรือชื่อ
+  const me=roomData.players?.[myId]
+    ||Object.values(roomData.players||{}).find(p=>p.name===myName);
+  if(me){
+    myAvatar=me.avatar||myAvatar;
+    isHost=me.isHost||false;
+  }
   document.getElementById('lob-cnt').textContent=players.length+' คน';
   document.getElementById('lob-players').innerHTML=players.map(([id,p])=>`
     <div class="pl-item">
-      <div class="pl-av">${p.avatar}</div>
-      <div class="pl-name">${p.name}${id===myId?' (คุณ)':''}</div>
+      <div class="pl-av">${p.avatar||'🎴'}</div>
+      <div class="pl-name">${p.name}${p.name===myName?' (คุณ)':''}</div>
       <div class="pl-badge ${p.isHost?'b-host':'b-wait'}">${p.isHost?'🎯 Host':'⏳ รอ'}</div>
     </div>`).join('');
   const btn=document.getElementById('btn-start');
-  if(isHost){btn.style.display='block';document.getElementById('lob-status').textContent=`กด "เริ่มเกม" เมื่อพร้อม (${players.length} คน)`;}
-  else{btn.style.display='none';document.getElementById('lob-status').textContent='รอ Host กด "เริ่มเกม"';}
+  const amHost=isHost||Object.values(roomData.players||{}).find(p=>p.name===myName)?.isHost||false;
+  if(amHost){
+    btn.style.display='block';
+    document.getElementById('lob-status').textContent=`กด "เริ่มเกม" เมื่อพร้อม (${players.length} คน)`;
+  } else {
+    btn.style.display='none';
+    document.getElementById('lob-status').textContent='รอ Host กด "เริ่มเกม"';
+  }
 }
 
 async function hostStart(){
-  if(!isHost){
-    // ลองตรวจสอบ isHost อีกครั้งจาก Firebase
-    const snap=await db.collection('rooms').doc(roomId).get();
-    const players=snap.data()?.players||{};
-    const me=players[myId]||Object.values(players).find(p=>p.name===myName);
-    if(!me?.isHost){alert('คุณไม่ใช่ Host ครับ');return;}
-    isHost=true;
-  }
-
+  // ดึงข้อมูลสดจาก Firebase เสมอ ไม่ต้องอิง isHost ที่ cache ไว้
   const snap=await db.collection('rooms').doc(roomId).get();
-  const players=snap.data()?.players||{};
-  const activePlayers=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue);
-  if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน (ตอนนี้มี '+activePlayers.length+' คน)');return;}
-
+  const data=snap.data()||{};
+  const allPlayers=Object.values(data.players||{});
+  const me=allPlayers.find(p=>p.name===myName);
+  if(!me){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}
+  if(!me.isHost){alert('คุณไม่ใช่ Host ครับ');return;}
+  const activePlayers=allPlayers.filter(p=>!p.isSpectator&&!p.isQueue);
+  if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
   const deck=shuffle(makeDeck());
   const deals={};
-  activePlayers.forEach((p,i)=>{
-    const cards=deck.slice(i*13,(i+1)*13);
-    deals[p.name]=cards;  // ใช้ชื่อเป็น key เดียว
-  });
-
+  activePlayers.forEach((p,i)=>{ deals[p.name]=deck.slice(i*13,(i+1)*13); });
   await db.collection('rooms').doc(roomId).update({
-    status:'playing',
-    round:(snap.data()?.round||0)+1,
-    deals,
-    hands:{},
-    startedAt:Date.now()
+    status:'playing',round:(data.round||0)+1,deals,hands:{},startedAt:Date.now()
   });
 }
 
