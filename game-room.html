@@ -157,7 +157,7 @@ html,body{
   background:linear-gradient(180deg,rgba(5,20,5,.98),rgba(3,12,3,1));
   border-top:2px solid rgba(255,220,80,.3);
   padding:8px 10px;display:flex;flex-direction:column;flex-shrink:0;
-  padding-bottom:calc(20px + env(safe-area-inset-bottom,20px));
+  padding-bottom:calc(34px + env(safe-area-inset-bottom,16px));
 }
 .my-info{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
 .my-av{
@@ -227,7 +227,10 @@ html,body{
 .val-ok{background:rgba(32,180,80,.2);color:#40e880;border:1px solid rgba(32,180,80,.3);}
 .val-warn{background:rgba(240,160,0,.15);color:#f0c040;border:1px solid rgba(240,160,0,.3);}
 
-.actions{display:flex;gap:6px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px));}
+.actions{
+  display:flex;gap:6px;
+  padding-bottom:max(20px,env(safe-area-inset-bottom,20px));
+}
 .abtn{
   flex:1;padding:10px;border:none;border-radius:10px;
   font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;

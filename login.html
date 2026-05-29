@@ -9,91 +9,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{
-  font-family:'Kanit',sans-serif;min-height:100vh;
-  background:linear-gradient(180deg,#fff8ee 0%,#faf0e0 100%);
-  display:flex;align-items:center;justify-content:center;
-  padding:24px 20px;
-}
+html,body{font-family:'Kanit',sans-serif;min-height:100vh;background:linear-gradient(180deg,#fff8ee 0%,#faf0e0 100%);display:flex;align-items:center;justify-content:center;padding:24px 20px;}
 .container{width:100%;max-width:360px;}
-
 .logo{text-align:center;margin-bottom:24px;}
 .logo-icon{font-size:52px;margin-bottom:6px;}
-.logo-title{
-  font-size:34px;font-weight:900;letter-spacing:2px;
-  background:linear-gradient(180deg,#8a4000 0%,#c06010 50%,#8a4000 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
+.logo-title{font-size:34px;font-weight:900;letter-spacing:2px;background:linear-gradient(180deg,#8a4000 0%,#c06010 50%,#8a4000 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .logo-sub{font-size:12px;color:#b87840;letter-spacing:1px;margin-top:3px;}
-
-.card{
-  background:#fff;border-radius:20px;padding:22px 20px;
-  border:1px solid rgba(180,100,20,.15);
-  box-shadow:0 4px 24px rgba(180,100,20,.1);
-}
+.card{background:#fff;border-radius:20px;padding:22px 20px;border:1px solid rgba(180,100,20,.15);box-shadow:0 4px 24px rgba(180,100,20,.1);}
 .card-title{font-size:15px;font-weight:800;color:#8a4000;margin-bottom:18px;text-align:center;}
-
 .lbl{font-size:11px;font-weight:700;color:#b87840;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;}
-
-/* MEMBER GRID */
 .member-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px;}
-.member-btn{
-  background:#faf6f0;border:1.5px solid rgba(180,100,20,.15);
-  border-radius:12px;padding:11px 8px;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  cursor:pointer;transition:all .15s;position:relative;
-}
+.member-btn{background:#faf6f0;border:1.5px solid rgba(180,100,20,.15);border-radius:12px;padding:11px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all .15s;position:relative;}
 .member-btn:active{transform:scale(.96);}
 .member-btn.selected{background:#fff3e0;border-color:#c07010;box-shadow:0 0 0 3px rgba(192,112,16,.12);}
-.member-btn.online::after{
-  content:'';position:absolute;top:6px;right:6px;
-  width:8px;height:8px;border-radius:50%;background:#20a040;
-  border:1.5px solid #fff;
-}
 .member-av{font-size:26px;}
 .member-nm{font-size:12px;font-weight:700;color:#1a0e00;}
 .member-chip{font-size:10px;color:#b87840;}
-
-.loading-members{
-  text-align:center;padding:20px;color:#b87840;font-size:13px;
-}
-
+.loading-members{text-align:center;padding:20px;color:#b87840;font-size:13px;}
 .divider{display:flex;align-items:center;gap:10px;margin:4px 0 14px;}
 .divider-line{flex:1;height:1px;background:rgba(180,100,20,.12);}
 .divider-text{font-size:11px;color:#c8a060;font-weight:700;}
-
 .input-wrap{position:relative;margin-bottom:14px;}
-.input-field{
-  width:100%;padding:12px 44px 12px 14px;
-  background:#faf6f0;border:1.5px solid rgba(180,100,20,.2);
-  border-radius:12px;font-family:'Kanit',sans-serif;
-  font-size:16px;font-weight:600;color:#1a0e00;
-  outline:none;letter-spacing:3px;
-  transition:border-color .15s,background .15s;
-}
+.input-field{width:100%;padding:12px 44px 12px 14px;background:#faf6f0;border:1.5px solid rgba(180,100,20,.2);border-radius:12px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:600;color:#1a0e00;outline:none;letter-spacing:3px;transition:border-color .15s,background .15s;}
 .input-field:focus{border-color:#c07010;background:#fff;}
 .input-field::placeholder{color:rgba(0,0,0,.2);letter-spacing:1px;}
-.eye-btn{
-  position:absolute;right:12px;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;font-size:18px;color:#c8a060;
-}
-
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#c8a060;}
 .err{font-size:12px;font-weight:700;color:#c02020;text-align:center;margin-bottom:12px;min-height:18px;}
-
-.login-btn{
-  width:100%;padding:14px;border:none;border-radius:14px;
-  font-family:'Kanit',sans-serif;font-size:16px;font-weight:900;
-  background:linear-gradient(160deg,#f0a820,#c07010);
-  color:#fff;cursor:pointer;letter-spacing:.5px;
-  box-shadow:0 4px 0 #8a4808,0 6px 20px rgba(192,112,16,.25);
-  transition:transform .1s,box-shadow .1s;
-}
+.login-btn{width:100%;padding:14px;border:none;border-radius:14px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:900;background:linear-gradient(160deg,#f0a820,#c07010);color:#fff;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 0 #8a4808,0 6px 20px rgba(192,112,16,.25);transition:transform .1s,box-shadow .1s;}
 .login-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8a4808;}
 .login-btn:disabled{background:#e8e0d8;color:#b0a090;box-shadow:none;cursor:not-allowed;}
-
 .footer{text-align:center;margin-top:14px;font-size:11px;color:#c8a060;}
-
-/* SUCCESS */
 .success{display:none;text-align:center;padding:16px 0;}
 .success-av{font-size:52px;margin-bottom:8px;}
 .success-title{font-size:18px;font-weight:800;color:#1a8040;}
@@ -109,34 +54,20 @@ html,body{
     <div class="logo-title">3 กอง กาญ</div>
     <div class="logo-sub">CHINESE POKER • สไตล์ไทย</div>
   </div>
-
   <div class="card">
     <div class="card-title">🔐 เข้าสู่ระบบ</div>
-
     <div class="lbl">เลือกชื่อของคุณ</div>
     <div id="member-grid" class="member-grid">
-      <div class="loading-members" style="grid-column:1/-1">
-        <span class="spinner"></span>กำลังโหลดสมาชิก...
-      </div>
+      <div class="loading-members" style="grid-column:1/-1"><span class="spinner"></span>กำลังโหลดสมาชิก...</div>
     </div>
-
-    <div class="divider">
-      <div class="divider-line"></div>
-      <div class="divider-text">ใส่รหัสผ่าน</div>
-      <div class="divider-line"></div>
-    </div>
-
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">ใส่รหัสผ่าน</div><div class="divider-line"></div></div>
     <div class="input-wrap">
       <div class="lbl">รหัสผ่าน</div>
-      <input type="password" id="pwd" class="input-field" placeholder="••••••"
-        maxlength="20" oninput="clearErr()" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="pwd" class="input-field" placeholder="••••••" maxlength="20" oninput="clearErr()" onkeydown="if(event.key==='Enter')doLogin()">
       <button class="eye-btn" onclick="togglePwd()" id="eye-btn">👁</button>
     </div>
-
     <div class="err" id="err-msg"></div>
-
     <button class="login-btn" id="login-btn" onclick="doLogin()" disabled>เข้าเล่น →</button>
-
     <div class="success" id="success">
       <div class="success-av" id="s-av">🦊</div>
       <div class="success-title">ยินดีต้อนรับ!</div>
@@ -144,25 +75,13 @@ html,body{
       <a id="profile-link" href="#" style="display:inline-block;margin-top:10px;font-size:12px;color:#b87840;text-decoration:none;font-weight:700;">✏️ แก้ไขโปรไฟล์ก่อน</a>
     </div>
   </div>
-
   <div class="footer">Admin เป็นคนสร้างบัญชีและรหัสผ่านให้ครับ</div>
 </div>
-
 <script>
-firebase.initializeApp({
-  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
-  authDomain:"poker-kan.firebaseapp.com",
-  projectId:"poker-kan",
-  storageBucket:"poker-kan.firebasestorage.app",
-  messagingSenderId:"267226971967",
-  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
-});
+firebase.initializeApp({apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",authDomain:"poker-kan.firebaseapp.com",projectId:"poker-kan",storageBucket:"poker-kan.firebasestorage.app",messagingSenderId:"267226971967",appId:"1:267226971967:web:3ae1891c63194a97715d8a"});
 const db=firebase.firestore();
-
 let members=[];
 let selectedMember=null;
-
-// ── โหลดสมาชิกจาก Firebase ──
 async function loadMembers(){
   try{
     const snap=await db.collection('admin').doc('data').get();
@@ -172,29 +91,18 @@ async function loadMembers(){
     if(!members.length){showNoMembers();return;}
     renderMembers();
   }catch(e){
-    document.getElementById('member-grid').innerHTML=
-      `<div class="loading-members" style="grid-column:1/-1;color:#c02020">⚠️ ไม่สามารถโหลดข้อมูลได้<br><small>${e.message}</small></div>`;
+    document.getElementById('member-grid').innerHTML=`<div class="loading-members" style="grid-column:1/-1;color:#c02020">⚠️ ไม่สามารถโหลดข้อมูลได้<br><small>${e.message}</small></div>`;
   }
 }
-
-function showNoMembers(){
-  document.getElementById('member-grid').innerHTML=
-    `<div class="loading-members" style="grid-column:1/-1;color:#b87840">ยังไม่มีสมาชิก<br><small>Admin ต้องสร้างสมาชิกก่อนครับ</small></div>`;
-}
-
+function showNoMembers(){document.getElementById('member-grid').innerHTML=`<div class="loading-members" style="grid-column:1/-1;color:#b87840">ยังไม่มีสมาชิก<br><small>Admin ต้องสร้างสมาชิกก่อนครับ</small></div>`;}
 function renderMembers(){
   const grid=document.getElementById('member-grid');
   grid.innerHTML=members.map((m,i)=>{
     const chip=m.wallet||m.chips||0;
     const chipStr=(chip>=0?'+':'')+chip;
-    return`<div class="member-btn" id="mb-${i}" onclick="selectMember(${i})">
-      <div class="member-av">${m.avatar||'🎴'}</div>
-      <div class="member-nm">${m.name}</div>
-      <div class="member-chip">🪙 ${chipStr}</div>
-    </div>`;
+    return`<div class="member-btn" id="mb-${i}" onclick="selectMember(${i})"><div class="member-av">${m.avatar||'🎴'}</div><div class="member-nm">${m.name}</div><div class="member-chip">🪙 ${chipStr}</div></div>`;
   }).join('');
 }
-
 function selectMember(i){
   document.querySelectorAll('.member-btn').forEach(b=>b.classList.remove('selected'));
   document.getElementById('mb-'+i).classList.add('selected');
@@ -203,15 +111,8 @@ function selectMember(i){
   document.getElementById('pwd').focus();
   clearErr();
 }
-
-function togglePwd(){
-  const f=document.getElementById('pwd'),e=document.getElementById('eye-btn');
-  f.type=f.type==='password'?'text':'password';
-  e.textContent=f.type==='password'?'👁':'🙈';
-}
-
+function togglePwd(){const f=document.getElementById('pwd'),e=document.getElementById('eye-btn');f.type=f.type==='password'?'text':'password';e.textContent=f.type==='password'?'👁':'🙈';}
 function clearErr(){document.getElementById('err-msg').textContent='';}
-
 function doLogin(){
   if(!selectedMember){document.getElementById('err-msg').textContent='กรุณาเลือกชื่อของคุณก่อนครับ';return;}
   const pwd=document.getElementById('pwd').value.trim();
@@ -222,7 +123,6 @@ function doLogin(){
     document.getElementById('pwd').focus();
     return;
   }
-  // ✅ Login สำเร็จ
   document.getElementById('login-btn').style.display='none';
   document.getElementById('pwd').closest('.input-wrap').style.display='none';
   document.querySelector('.divider').style.display='none';
@@ -231,30 +131,18 @@ function doLogin(){
   s.style.display='block';
   document.getElementById('s-av').textContent=selectedMember.avatar||'🎴';
   document.getElementById('s-sub').textContent=selectedMember.name+' — กำลังเข้าสู่ห้องเกม...';
-  // บันทึก session
-  sessionStorage.setItem('player',JSON.stringify({
-    id:selectedMember.id||selectedMember.name,
-    name:selectedMember.name,
-    avatar:selectedMember.avatar||'🎴'
-  }));
-  document.getElementById('profile-link').href=
-    'profile.html?name='+encodeURIComponent(selectedMember.name);
+  sessionStorage.setItem('player',JSON.stringify({id:selectedMember.id||selectedMember.name,name:selectedMember.name,avatar:selectedMember.avatar||'🎴'}));
+  document.getElementById('profile-link').href='profile.html?name='+encodeURIComponent(selectedMember.name);
   setTimeout(()=>{
     const p=new URLSearchParams(location.search);
     const roomCode=p.get('room')||'';
     if(roomCode){
-      // มี room code → เข้าห้องนั้นเลย
-      location.href='room.html?name='+encodeURIComponent(selectedMember.name)
-        +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴')
-        +'&room='+encodeURIComponent(roomCode);
+      location.href='game-room.html?name='+encodeURIComponent(selectedMember.name)+'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴')+'&room='+encodeURIComponent(roomCode);
     } else {
-      // ไม่มี room code → ไปหน้าเลือกห้อง
-      location.href='lobby.html?name='+encodeURIComponent(selectedMember.name)
-        +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴');
+      location.href='lobby.html?name='+encodeURIComponent(selectedMember.name)+'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴');
     }
   },1200);
 }
-
 loadMembers();
 </script>
 </body>
