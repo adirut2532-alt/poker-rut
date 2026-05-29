@@ -68,28 +68,43 @@ html,body{
 #game{flex-direction:column;}
 .game-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
-/* TABLE */
-.round-table{flex:1;position:relative;display:flex;flex-direction:column;padding:8px;gap:6px;min-height:0;}
-.opp-top-row{display:flex;justify-content:center;gap:8px;}
-.opp-mid-row{display:flex;justify-content:space-between;align-items:center;flex:1;}
-.table-center{flex:1;display:flex;align-items:center;justify-content:center;}
-.table-felt{
-  width:80%;height:80%;
-  background:radial-gradient(ellipse at 50% 50%,rgba(30,100,30,.4) 0%,rgba(10,50,10,.2) 100%);
-  border-radius:50%;border:2px solid rgba(255,220,80,.12);
+/* TABLE — โต๊ะวงรีพรีเมียมคาสิโน */
+.round-table{
+  flex:1;position:relative;display:flex;
+  align-items:center;justify-content:center;
+  padding:24px 20px;min-height:0;
+}
+.oval-table{
+  position:relative;width:96%;height:88%;
+  background:radial-gradient(circle at 50% 45%,#0c4722 0%,#052611 70%,#021308 100%);
+  border-radius:140px;
+  border:13px solid #3d1a04;
+  box-shadow:
+    inset 0 0 44px rgba(0,0,0,.8),
+    0 12px 36px rgba(0,0,0,.7),
+    0 0 0 3px #d4af37;
   display:flex;align-items:center;justify-content:center;
 }
-.table-logo{font-size:10px;color:rgba(255,220,80,.2);font-weight:900;letter-spacing:2px;}
-
-/* OPP BOX */
-.opp-box{
-  background:rgba(0,0,0,.5);border-radius:12px;padding:7px 9px;
-  border:1px solid rgba(255,220,80,.2);
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  position:relative;min-width:85px;max-width:130px;
-  box-shadow:0 4px 16px rgba(0,0,0,.5);
+.table-center{display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.table-felt{display:flex;align-items:center;justify-content:center;background:none;border:none;}
+.table-logo{
+  font-size:13px;color:rgba(212,175,55,.16);
+  font-weight:900;letter-spacing:7px;text-transform:uppercase;
 }
-.opp-box.side{max-width:95px;}
+
+/* OPP BOX — กล่องผู้เล่นรอบโต๊ะ */
+.opp-box{
+  position:absolute;
+  background:rgba(15,22,36,.88);border-radius:16px;padding:8px 11px;
+  border:1px solid rgba(212,175,55,.22);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  min-width:92px;max-width:120px;z-index:10;
+  box-shadow:0 8px 24px rgba(0,0,0,.6);
+}
+.opp-box.pos-top  {top:-22px;left:50%;transform:translateX(-50%);}
+.opp-box.pos-left {left:-12px;top:42%;transform:translateY(-50%);}
+.opp-box.pos-right{right:-12px;top:42%;transform:translateY(-50%);}
+.opp-box.side{min-width:88px;max-width:104px;}
 .opp-av{
   width:40px;height:40px;border-radius:50%;
   background:linear-gradient(135deg,rgba(255,220,80,.3),rgba(200,140,20,.2));
@@ -653,6 +668,31 @@ function calcScores(players,hands){
   return sc;
 }
 
+// ── BUILD MATCHUPS (สำหรับหน้า battle เปิดไพ่สู้ทีละคู่) ──
+function buildMatchups(players,hands){
+  const h=k=>hands[k.name]||hands[k.id]||{front:[],mid:[],back:[],foul:false};
+  const rows=[{key:'front',label:'หน้า'},{key:'mid',label:'กลาง'},{key:'back',label:'หลัง'}];
+  const matchups=[];
+  for(let i=0;i<players.length;i++)for(let j=i+1;j<players.length;j++){
+    const a=players[i],b=players[j];
+    const ha=h(a),hb=h(b);
+    const rowResults=rows.map(r=>{
+      const ca=ha[r.key]||[],cb=hb[r.key]||[];
+      let winner=0;
+      if(ha.foul&&!hb.foul)winner=-1;
+      else if(hb.foul&&!ha.foul)winner=1;
+      else if(ha.foul&&hb.foul)winner=0;
+      else winner=cmpH(ca,cb);
+      return{key:r.key,label:r.label,aCards:ca,bCards:cb,aName:evalHand(ca).name,bName:evalHand(cb).name,winner};
+    });
+    const aWins=rowResults.filter(r=>r.winner>0).length;
+    const bWins=rowResults.filter(r=>r.winner<0).length;
+    const talu=(aWins===3||bWins===3)&&!ha.foul&&!hb.foul;
+    matchups.push({a,b,ha,hb,rowResults,aWins,bWins,talu,taluWinner:aWins===3?a:bWins===3?b:null});
+  }
+  return matchups;
+}
+
 // ── STATE ──
 let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null;
 let hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
@@ -724,6 +764,7 @@ window.addEventListener('load',async()=>{
       roomData=nowData;
       if(nowData.status==='results'&&!resultsShown){
         roomData=nowData;
+        battleShown=true;
         showResults();
         listen();
         return;
@@ -774,6 +815,8 @@ function listen(){
     const st=roomData.status||'lobby';
     const cur=document.querySelector('.screen.active')?.id;
     if(st==='lobby'||st==='waiting_start'){
+      resultsShown=false;
+      battleShown=false;
       if(cur!=='lobby')showScreen('lobby');
       renderLobby();
     } else if(st==='playing'){
@@ -909,14 +952,6 @@ function renderSpectatorView(){
             </span>
           </div>`).join('')}
       </div>
-      <div style="background:rgba(255,0,0,.2);border-radius:10px;padding:10px;width:100%;max-width:320px;font-size:11px;color:#ff8080;text-align:center;">
-        myName: ${myName}<br>
-        deals keys: ${JSON.stringify(Object.keys(roomData.deals||{}))}<br>
-        myCards: ${(roomData.deals||{})[myName]?.length||0} ใบ
-      </div>
-      <button onclick="forceStartRound()" style="padding:12px 20px;background:#f0a820;border:none;border-radius:12px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;">
-        🃏 เริ่มจัดไพ่ (force)
-      </button>
     </div>`;
 }
 
@@ -931,8 +966,8 @@ function renderGame(){
   const chipVal=(roomData.scores||{})[myId]||0;
 
   // Opponent box
-  function oppBox(op,side=false){
-    const oh=handsData[op.id];
+  function oppBox(op,side=false,pos=''){
+    const oh=handsData[op.name]||handsData[op.id];
     const isDone=oh?.done||false;
     const d=(i)=>`animation-delay:${i*0.1}s`;
     let cards='';
@@ -950,7 +985,7 @@ function renderGame(){
       </div>`;
     }
     const cs=(roomData.scores||{})[op.id]||0;
-    return `<div class="opp-box ${side?'side':''}">
+    return `<div class="opp-box ${side?'side':''} ${pos}">
       <div class="opp-av ${side?'sm':''}">${op.avatar}</div>
       <div class="opp-nm">${op.name}</div>
       <div class="opp-chip">🪙<span>${cs>=0?'+':''}${cs}</span></div>
@@ -959,13 +994,19 @@ function renderGame(){
     </div>`;
   }
 
-  // Round table layout
+  // Round table layout — โต๊ะวงรี วางผู้เล่นรอบ ๆ
   function tableHTML(){
-    const center=`<div class="table-center"><div class="table-felt"><div class="table-logo">3 กอง กาญ</div></div></div>`;
-    if(n===0)return`<div class="round-table">${center}</div>`;
-    if(n===1)return`<div class="round-table"><div class="opp-top-row">${oppBox(opps[0])}</div>${center}</div>`;
-    if(n===2)return`<div class="round-table"><div class="opp-top-row">${oppBox(opps[0])}</div><div class="opp-mid-row"><div style="width:95px"></div>${center}${oppBox(opps[1],true)}</div></div>`;
-    return`<div class="round-table"><div class="opp-top-row">${oppBox(opps[1])}</div><div class="opp-mid-row">${oppBox(opps[0],true)}${center}${oppBox(opps[2],true)}</div></div>`;
+    const center=`<div class="table-center"><div class="table-felt"><div class="table-logo">สิบสามใบ</div></div></div>`;
+    // ตำแหน่งรอบโต๊ะตามจำนวนคู่แข่ง: 1→บน, 2→ซ้าย+ขวา, 3→ซ้าย+บน+ขวา
+    let seats='';
+    if(n===1){
+      seats=oppBox(opps[0],false,'pos-top');
+    }else if(n===2){
+      seats=oppBox(opps[0],true,'pos-left')+oppBox(opps[1],true,'pos-right');
+    }else if(n>=3){
+      seats=oppBox(opps[0],true,'pos-left')+oppBox(opps[1],false,'pos-top')+oppBox(opps[2],true,'pos-right');
+    }
+    return`<div class="round-table"><div class="oval-table">${center}${seats}</div></div>`;
   }
 
   // Drop zone
@@ -1166,7 +1207,7 @@ async function confirmHand(){
   updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
-  autoCheckDone();
+  await checkAllDone();
 }
 
 async function confirmFoul(){
@@ -1175,11 +1216,13 @@ async function confirmFoul(){
   updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
-  autoCheckDone();
+  await checkAllDone();
 }
 
 async function undoConfirm(){
-  const allDone=Object.values(roomData.hands||{}).every(h=>h.done);
+  const deals=roomData.deals||{};const hands=roomData.hands||{};
+  const names=Object.keys(deals);
+  const allDone=names.length>0&&names.every(n=>hands[n]?.done);
   if(allDone){alert('ไม่สามารถจัดใหม่ได้แล้ว');return;}
   hand.done=false;hand.foul=false;
   const updates={};
@@ -1206,15 +1249,16 @@ async function checkAllDone(){
 
 // ── SHOW RESULTS ──
 let resultsShown=false;
+let battleShown=false;
+let battleTimers=[];
 
 function showResults(){
-  if(resultsShown) return; // ป้องกัน render ซ้ำ
+  if(resultsShown) return;
   resultsShown=true;
   initChat();
 
   const players=Object.values(roomData.players||{}).filter(p=>!p.isSpectator&&!p.isQueue);
   const hands=roomData.hands||{};
-  // hands ใช้ชื่อเป็น key → map ให้ตรงกับ player
   const handsById={};
   players.forEach(p=>{
     handsById[p.name]=hands[p.name]||hands[p.id]||{front:[],mid:[],back:[],done:false,foul:false};
@@ -1222,10 +1266,10 @@ function showResults(){
 
   if(!players.length||!Object.keys(handsById).length){
     document.getElementById('res-list').innerHTML='<div style="text-align:center;color:#c8a860;padding:20px">กำลังโหลดผล...</div>';
+    resultsShown=false;
     return;
   }
 
-  // ตรวจ dragon
   const dragon=players.find(p=>isDragonHand(handsById[p.name]||{front:[],mid:[],back:[]}));
 
   let scores;
@@ -1240,7 +1284,6 @@ function showResults(){
     scores=calcScores(players,handsById);
   }
 
-  // บันทึกคะแนนสะสม (ทุกคนบันทึกได้ — ค่าเหมือนกัน)
   const newScores={};
   players.forEach(p=>{
     const old=(roomData.scores||{})[p.id]||0;
@@ -1248,7 +1291,18 @@ function showResults(){
   });
   db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
 
-  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1);
+  // เล่นหน้า battle ก่อน (ยกเว้นมังกร)
+  if(!battleShown&&!dragon){
+    battleShown=true;
+    renderResults(players,handsById,scores);
+    showBattle(players,handsById,scores);
+    return;
+  }
+  renderResults(players,handsById,scores);
+  showScreen('result');
+}
+
+function renderResults(players,handsById,scores){  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1);
   const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
   document.getElementById('res-list').innerHTML=sorted.map((s,i)=>{
     const medals=['🥇','🥈','🥉','4️⃣'];
@@ -1277,10 +1331,95 @@ function showResults(){
   document.getElementById('btn-next').style.display=isHost?'block':'none';
 }
 
+// ── BATTLE SCREEN (เปิดไพ่สู้ทีละคู่ ทีละกอง) ──
+function fightCardHTML(c){
+  return`<div class="fight-card ${isRed(c)?'rc':'bc'}"><span class="cr">${c.rank}</span><span class="cs">${c.suit}</span></div>`;
+}
+
+function showBattle(players,handsById,scores){
+  battleTimers.forEach(t=>clearTimeout(t));
+  battleTimers=[];
+  showScreen('battle');
+  const matchups=buildMatchups(players,handsById);
+  const body=document.getElementById('battle-body');
+  const rowLabel={front:'หน้า',mid:'กลาง',back:'หลัง'};
+
+  let html='';
+  matchups.forEach((m,mi)=>{
+    const rowsHTML=m.rowResults.map(r=>{
+      const aBadge=r.winner>0?'fwin':r.winner<0?'flose':'fdraw';
+      const bBadge=r.winner<0?'fwin':r.winner>0?'flose':'fdraw';
+      const aTxt=r.winner>0?'ชนะ':r.winner<0?'แพ้':'เสมอ';
+      const bTxt=r.winner<0?'ชนะ':r.winner>0?'แพ้':'เสมอ';
+      return`<div class="fight-line">
+        <div class="fight-p">
+          <div class="fight-cards">${r.aCards.map(fightCardHTML).join('')}</div>
+          <div class="fight-hn">${r.aName||'-'}</div>
+          <div class="rbadge ${aBadge}">${aTxt}</div>
+        </div>
+        <div class="fight-vs">${rowLabel[r.key]}</div>
+        <div class="fight-p">
+          <div class="fight-cards">${r.bCards.map(fightCardHTML).join('')}</div>
+          <div class="fight-hn">${r.bName||'-'}</div>
+          <div class="rbadge ${bBadge}">${bTxt}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const foulNote=(m.ha.foul||m.hb.foul)
+      ?`<div style="text-align:center;font-size:11px;color:#ff6060;margin-bottom:6px">⚠️ ${m.ha.foul?m.a.name:''}${m.ha.foul&&m.hb.foul?' และ ':''}${m.hb.foul?m.b.name:''} ฟาว</div>`:'';
+    const taluHTML=m.talu
+      ?`<div class="talu-banner" id="talu-${mi}">🔥 ตาลู! ${m.taluWinner.avatar} ${m.taluWinner.name} กินรวด 3 กอง (คะแนน x2)</div>`:'';
+
+    html+=`<div class="b-section" id="bsec-${mi}">
+      <div class="b-title">${m.a.avatar} ${m.a.name} &nbsp;⚔️&nbsp; ${m.b.avatar} ${m.b.name}</div>
+      ${foulNote}${rowsHTML}${taluHTML}
+    </div>`;
+  });
+
+  const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
+  html+=`<div class="b-section" id="bsec-final">
+    <div class="b-title">💰 คะแนนรอบนี้</div>
+    ${sorted.map(s=>{
+      const pos=s.roundScore>=0;
+      return`<div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid rgba(255,220,80,.08)">
+        <span style="font-size:20px">${s.avatar}</span>
+        <span style="flex:1;font-size:14px;font-weight:700">${s.name}${s.name===myName?' (คุณ)':''}</span>
+        <span style="font-size:20px;font-weight:900;color:${pos?'#40e880':'#ff6060'}">${pos?'+':''}${s.roundScore}</span>
+      </div>`;
+    }).join('')}
+    <button class="abtn abtn-ready" onclick="goToResults()" style="margin-top:12px;width:100%">📊 ดูผลรวม →</button>
+  </div>`;
+
+  body.innerHTML=html;
+  body.scrollTop=0;
+
+  const total=matchups.length+1;
+  for(let i=0;i<total;i++){
+    const sec=document.getElementById(i<matchups.length?`bsec-${i}`:'bsec-final');
+    const delay=600+i*1100;
+    battleTimers.push(setTimeout(()=>{
+      sec?.classList.add('shown');
+      sec?.scrollIntoView({behavior:'smooth',block:'center'});
+      if(i<matchups.length&&matchups[i].talu){
+        const tb=document.getElementById(`talu-${i}`);
+        battleTimers.push(setTimeout(()=>tb?.classList.add('shown'),400));
+      }
+    },delay));
+  }
+}
+
+function goToResults(){
+  battleTimers.forEach(t=>clearTimeout(t));
+  battleTimers=[];
+  showScreen('result');
+}
+
 async function nextRound(){
   resultsShown=false;
+  battleShown=false;
   hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
-  await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{}});
+  await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{},deals:{}});
 }
 
 function showScoreboard(){
@@ -1308,7 +1447,7 @@ async function leaveRoom(){
   sessionStorage.removeItem('gr_room');
   sessionStorage.removeItem('gr_myId');
   sessionStorage.removeItem('gr_myName');
-  location.href='room.html';
+  location.href='lobby.html';
 }
 
 function confirmLeave(){
