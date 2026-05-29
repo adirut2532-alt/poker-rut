@@ -743,7 +743,14 @@ function listen(){
       return;
     }
 
-    if(me){myAvatar=me.avatar||myAvatar;isHost=me.isHost||false;}
+    if(me){
+      myAvatar=me.avatar||myAvatar;
+      isHost=me.isHost||false;
+    } else {
+      // หาจากชื่อถ้า myId ไม่ตรง
+      const byName=Object.values(players).find(p=>p.name===myName);
+      if(byName) isHost=byName.isHost||false;
+    }
     const st=roomData.status||'lobby';
     const cur=document.querySelector('.screen.active')?.id;
     if(st==='lobby'||st==='waiting_start'){
@@ -788,23 +795,33 @@ function renderLobby(){
 }
 
 async function hostStart(){
-  if(!isHost)return;
-  const allPlayers=Object.values(roomData.players||{});
-  const activePlayers=allPlayers.filter(p=>!p.isSpectator&&!p.isQueue);
-  if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
+  if(!isHost){
+    // ลองตรวจสอบ isHost อีกครั้งจาก Firebase
+    const snap=await db.collection('rooms').doc(roomId).get();
+    const players=snap.data()?.players||{};
+    const me=players[myId]||Object.values(players).find(p=>p.name===myName);
+    if(!me?.isHost){alert('คุณไม่ใช่ Host ครับ');return;}
+    isHost=true;
+  }
+
+  const snap=await db.collection('rooms').doc(roomId).get();
+  const players=snap.data()?.players||{};
+  const activePlayers=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue);
+  if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน (ตอนนี้มี '+activePlayers.length+' คน)');return;}
 
   const deck=shuffle(makeDeck());
   const deals={};
-  // แจกด้วย id AND name เพื่อให้หาเจอทั้งสองทาง
   activePlayers.forEach((p,i)=>{
     const cards=deck.slice(i*13,(i+1)*13);
-    deals[p.id]=cards;           // key = id
-    deals['name_'+p.name]=cards; // key = name (backup)
+    // บันทึกด้วย id และชื่อ
+    const pid=Object.keys(players).find(id=>players[id]===p)||p.name;
+    deals[pid]=cards;
+    deals['name_'+p.name]=cards;
   });
 
   await db.collection('rooms').doc(roomId).update({
     status:'playing',
-    round:(roomData.round||0)+1,
+    round:(snap.data()?.round||0)+1,
     deals,
     hands:{},
     startedAt:Date.now()
