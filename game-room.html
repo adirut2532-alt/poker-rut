@@ -722,7 +722,8 @@ window.addEventListener('load',async()=>{
     if(nowSnap.exists){
       const nowData=nowSnap.data();
       roomData=nowData;
-      if(nowData.status==='results'){
+      if(nowData.status==='results'&&!resultsShown){
+        roomData=nowData;
         showResults();
         listen();
         return;
@@ -780,7 +781,7 @@ function listen(){
     } else if(st==='confirming'){
       if(cur==='game'){renderGame();autoCheckDone();}
     } else if(st==='results'){
-      showResults();
+      if(!resultsShown) showResults();
     }
   });
 }
@@ -1191,9 +1192,11 @@ async function checkAllDone(){
 }
 
 // ── SHOW RESULTS ──
+let resultsShown=false;
+
 function showResults(){
-  // switch screen ทันที ไม่รอ
-  showScreen('result');
+  if(resultsShown) return; // ป้องกัน render ซ้ำ
+  resultsShown=true;
   initChat();
 
   const players=Object.values(roomData.players||{}).filter(p=>!p.isSpectator&&!p.isQueue);
@@ -1262,6 +1265,7 @@ function showResults(){
 }
 
 async function nextRound(){
+  resultsShown=false;
   await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{}});
 }
 
