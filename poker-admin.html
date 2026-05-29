@@ -505,23 +505,59 @@ function renderDash(){
 }
 
 /* ROOMS */
-function renderRooms(){
+async function renderRooms(){
   const cont=document.getElementById('rooms-cont');
   if(!cont)return;
+
+  // ดึงสถานะห้องจาก Firebase
+  let fbRooms={};
+  if(window.fbAdminReady){
+    try{
+      await Promise.all((DB.rooms||[]).map(async r=>{
+        const snap=await fbdb.collection('rooms').doc(r.code).get();
+        if(snap.exists) fbRooms[r.code]=snap.data();
+      }));
+    }catch(e){}
+  }
+
+  const statusLabel=(st)=>{
+    if(st==='playing')return`<span style="background:#e0f5ea;color:#0e6030;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">🎮 กำลังเล่น</span>`;
+    if(st==='lobby')return`<span style="background:#fff3e0;color:#b85e00;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">🚪 รอผู้เล่น</span>`;
+    return`<span style="background:#f0ebe3;color:#7a4a18;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">⏸ ว่าง</span>`;
+  };
+
   cont.innerHTML=`
     <div style="margin-bottom:14px">
       <button class="btn btn-gold btn-sm" onclick="createRoom()">🚪 สร้างห้องใหม่</button>
     </div>
-    ${(DB.rooms||[]).map((r,i)=>`
-      <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(150,80,0,.12);display:flex;align-items:center;gap:10px">
-        <div style="flex:1">
-          <div style="font-size:16px;font-weight:800;color:#b85e00;letter-spacing:2px">${r.code}</div>
-          <div style="font-size:12px;color:#7a4a18">${r.name||'ห้อง '+(i+1)} • ${r.players||0} ผู้เล่น</div>
-        </div>
-        <button class="btn btn-sm btn-gray" onclick="copyRoomLink('${r.code}')">📋 คัดลอกลิงก์</button>
-        <button class="btn btn-sm btn-red" onclick="deleteRoom(${i})">🗑</button>
-      </div>`).join('')||'<div style="text-align:center;color:#7a4a18;padding:20px">ยังไม่มีห้อง กด "สร้างห้องใหม่"</div>'}
-  `;
+    ${(DB.rooms||[]).length===0
+      ?'<div style="text-align:center;color:#7a4a18;padding:20px">ยังไม่มีห้อง กด "สร้างห้องใหม่"</div>'
+      :(DB.rooms||[]).map((r,i)=>{
+        const fb=fbRooms[r.code]||{};
+        const playerCount=Object.values(fb.players||{}).filter(p=>!p.isSpectator&&!p.isQueue).length;
+        const queueCount=Object.values(fb.players||{}).filter(p=>p.isQueue).length;
+        return`<div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid rgba(150,80,0,.12)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span style="font-size:16px;font-weight:800;color:#b85e00;letter-spacing:2px">${r.code}</span>
+                ${statusLabel(fb.status)}
+              </div>
+              <div style="font-size:12px;color:#7a4a18">
+                ${r.name||'ห้อง '+(i+1)}
+                • 👥 ${playerCount} คน
+                ${queueCount>0?`• ⏳ คิว ${queueCount}`:''}
+                ${fb.round?`• รอบที่ ${fb.round}`:''}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-gray" onclick="copyRoomLink('${r.code}')">📤 แชร์</button>
+              <button class="btn btn-sm btn-red" onclick="deleteRoom(${i})">🗑</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')
+    }`;
 }
 
 async function createRoom(){
@@ -590,9 +626,21 @@ function shareRoom(link,code){
   }
 }
 
-function deleteRoom(i){
-  if(!confirm('ลบห้องนี้?')) return;
-  DB.rooms.splice(i,1); save(); renderRooms();
+async function deleteRoom(i){
+  const room=DB.rooms[i];
+  if(!room)return;
+  if(!confirm(`ลบห้อง "${room.code}" ?\nผู้เล่นในห้องจะถูกเด้งออกทั้งหมด`))return;
+  // ลบจาก Firestore
+  if(window.fbAdminReady){
+    try{
+      await fbdb.collection('rooms').doc(room.code).delete();
+    }catch(e){console.warn('fbDelete error',e);}
+  }
+  // ลบจาก localStorage
+  DB.rooms.splice(i,1);
+  save();
+  renderRooms();
+  toast('🗑 ลบห้อง '+room.code+' แล้ว');
 }
 
 /* MEMBERS */
