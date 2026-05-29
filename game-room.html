@@ -884,12 +884,33 @@ function renderSpectatorView(){
           <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,220,80,.08)">
             <span style="font-size:18px">${p.avatar||'🎴'}</span>
             <span style="font-size:13px;font-weight:700;flex:1">${p.name}</span>
-            <span style="font-size:11px;color:${(roomData.hands||{})[p.id]?.done?'#40e880':'#c8a860'}">
-              ${(roomData.hands||{})[p.id]?.done?'✅ พร้อม':'⏳ จัดไพ่...'}
+            <span style="font-size:11px;color:${(roomData.hands||{})[p.name]?.done?'#40e880':'#c8a860'}">
+              ${(roomData.hands||{})[p.name]?.done?'✅ พร้อม':'⏳ จัดไพ่...'}
             </span>
           </div>`).join('')}
       </div>
+      <div style="background:rgba(255,0,0,.2);border-radius:10px;padding:10px;width:100%;max-width:320px;font-size:11px;color:#ff8080;text-align:center;">
+        myName: ${myName}<br>
+        deals keys: ${JSON.stringify(Object.keys(roomData.deals||{}))}<br>
+        myCards: ${(roomData.deals||{})[myName]?.length||0} ใบ
+      </div>
+      <button onclick="forceStartRound()" style="padding:12px 20px;background:#f0a820;border:none;border-radius:12px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;">
+        🃏 เริ่มจัดไพ่ (force)
+      </button>
     </div>`;
+}
+
+function forceStartRound(){
+  const deals=roomData.deals||{};
+  let myCards=deals[myName]||[];
+  if(!myCards.length){
+    const keys=Object.keys(deals);
+    alert('deals keys: '+JSON.stringify(keys)+'\nmyName: ['+myName+']');
+    return;
+  }
+  hand={front:[],mid:[],back:[],unplaced:[...myCards].sort((a,b)=>b.val-a.val),done:false,foul:false};
+  showScreen('game');
+  renderGame();
 }
 
 // ── RENDER GAME ──
