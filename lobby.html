@@ -327,13 +327,13 @@ function setFilter(f,el){
 }
 
 function enterRoom(code){
-  // บันทึกชื่อ+ห้องแล้ว redirect ไป room.html
   const params=new URLSearchParams({
     room:code,
     name:myName,
+    myName:myName,
     avatar:myAvatar
   });
-  location.href='room.html?'+params.toString();
+  location.href='game-room.html?'+params.toString();
 }
 
 // ── Init ──
