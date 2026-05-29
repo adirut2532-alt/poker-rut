@@ -653,36 +653,6 @@ function calcScores(players,hands){
   return sc;
 }
 
-// ── BUILD MATCHUPS (สำหรับหน้า battle เปิดไพ่สู้ทีละคู่) ──
-function buildMatchups(players,hands){
-  const h=k=>hands[k.name]||hands[k.id]||{front:[],mid:[],back:[],foul:false};
-  const rows=[{key:'front',label:'หน้า'},{key:'mid',label:'กลาง'},{key:'back',label:'หลัง'}];
-  const matchups=[];
-  for(let i=0;i<players.length;i++)for(let j=i+1;j<players.length;j++){
-    const a=players[i],b=players[j];
-    const ha=h(a),hb=h(b);
-    const rowResults=rows.map(r=>{
-      const ca=ha[r.key]||[],cb=hb[r.key]||[];
-      let winner=0; // 1=a, -1=b, 0=draw
-      if(ha.foul&&!hb.foul)winner=-1;
-      else if(hb.foul&&!ha.foul)winner=1;
-      else if(ha.foul&&hb.foul)winner=0;
-      else winner=cmpH(ca,cb);
-      return{
-        key:r.key,label:r.label,
-        aCards:ca,bCards:cb,
-        aName:evalHand(ca).name,bName:evalHand(cb).name,
-        winner
-      };
-    });
-    const aWins=rowResults.filter(r=>r.winner>0).length;
-    const bWins=rowResults.filter(r=>r.winner<0).length;
-    const talu=(aWins===3||bWins===3)&&!ha.foul&&!hb.foul;
-    matchups.push({a,b,ha,hb,rowResults,aWins,bWins,talu,taluWinner:aWins===3?a:bWins===3?b:null});
-  }
-  return matchups;
-}
-
 // ── STATE ──
 let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null;
 let hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
@@ -754,7 +724,6 @@ window.addEventListener('load',async()=>{
       roomData=nowData;
       if(nowData.status==='results'&&!resultsShown){
         roomData=nowData;
-        battleShown=true; // เพิ่งเข้ามา → ข้าม animation ไปดูผลรวมเลย
         showResults();
         listen();
         return;
@@ -778,7 +747,8 @@ function listen(){
     if(!me&&myName){
       const av=myAvatar||'🦊';
       const activePlayers=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue);
-      const isHost=Object.keys(players).length===0;
+      const alreadyHasHost=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue).some(p=>p.isHost);
+      const isHost=!alreadyHasHost&&activePlayers.length===0;
       const updates={};
       const st=roomData.status||'lobby';
       const isPassive=activePlayers.length>=4||st==='playing';
@@ -804,8 +774,6 @@ function listen(){
     const st=roomData.status||'lobby';
     const cur=document.querySelector('.screen.active')?.id;
     if(st==='lobby'||st==='waiting_start'){
-      resultsShown=false; // reset เมื่อกลับมา lobby
-      battleShown=false;
       if(cur!=='lobby')showScreen('lobby');
       renderLobby();
     } else if(st==='playing'){
@@ -842,9 +810,9 @@ function listen(){
 }
 
 function autoCheckDone(){
-  // ใช้ข้อมูลจาก roomData snapshot ล่าสุดที่เพิ่งได้รับ
   const deals=roomData.deals||{};
   const hands=roomData.hands||{};
+  // deals และ hands ใช้ชื่อเป็น key เหมือนกัน
   const names=Object.keys(deals);
   if(!names.length) return;
   const allDone=names.every(n=>hands[n]?.done);
@@ -941,21 +909,17 @@ function renderSpectatorView(){
             </span>
           </div>`).join('')}
       </div>
+      <div style="background:rgba(255,0,0,.2);border-radius:10px;padding:10px;width:100%;max-width:320px;font-size:11px;color:#ff8080;text-align:center;">
+        myName: ${myName}<br>
+        deals keys: ${JSON.stringify(Object.keys(roomData.deals||{}))}<br>
+        myCards: ${(roomData.deals||{})[myName]?.length||0} ใบ
+      </div>
+      <button onclick="forceStartRound()" style="padding:12px 20px;background:#f0a820;border:none;border-radius:12px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;">
+        🃏 เริ่มจัดไพ่ (force)
+      </button>
     </div>`;
 }
 
-function forceStartRound(){
-  const deals=roomData.deals||{};
-  let myCards=deals[myName]||[];
-  if(!myCards.length){
-    const keys=Object.keys(deals);
-    alert('deals keys: '+JSON.stringify(keys)+'\nmyName: ['+myName+']');
-    return;
-  }
-  hand={front:[],mid:[],back:[],unplaced:[...myCards].sort((a,b)=>b.val-a.val),done:false,foul:false};
-  showScreen('game');
-  renderGame();
-}
 
 // ── RENDER GAME ──
 function renderGame(){
@@ -968,8 +932,7 @@ function renderGame(){
 
   // Opponent box
   function oppBox(op,side=false){
-    // hands ใช้ชื่อเป็น key (เหมือน deals) ไม่ใช่ id
-    const oh=handsData[op.name]||handsData[op.id];
+    const oh=handsData[op.id];
     const isDone=oh?.done||false;
     const d=(i)=>`animation-delay:${i*0.1}s`;
     let cards='';
@@ -1203,8 +1166,7 @@ async function confirmHand(){
   updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
-  // ใช้ข้อมูลสดจาก Firebase แทน roomData ที่อาจยังไม่ sync
-  await checkAllDone();
+  autoCheckDone();
 }
 
 async function confirmFoul(){
@@ -1213,15 +1175,11 @@ async function confirmFoul(){
   updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};
   await db.collection('rooms').doc(roomId).update(updates);
   renderGame();
-  // ใช้ข้อมูลสดจาก Firebase แทน roomData ที่อาจยังไม่ sync
-  await checkAllDone();
+  autoCheckDone();
 }
 
 async function undoConfirm(){
-  const deals=roomData.deals||{};
-  const hands=roomData.hands||{};
-  const names=Object.keys(deals);
-  const allDone=names.length>0&&names.every(n=>hands[n]?.done);
+  const allDone=Object.values(roomData.hands||{}).every(h=>h.done);
   if(allDone){alert('ไม่สามารถจัดใหม่ได้แล้ว');return;}
   hand.done=false;hand.foul=false;
   const updates={};
@@ -1248,7 +1206,6 @@ async function checkAllDone(){
 
 // ── SHOW RESULTS ──
 let resultsShown=false;
-let battleShown=false;
 
 function showResults(){
   if(resultsShown) return; // ป้องกัน render ซ้ำ
@@ -1265,7 +1222,6 @@ function showResults(){
 
   if(!players.length||!Object.keys(handsById).length){
     document.getElementById('res-list').innerHTML='<div style="text-align:center;color:#c8a860;padding:20px">กำลังโหลดผล...</div>';
-    resultsShown=false; // ให้ retry รอบหน้า
     return;
   }
 
@@ -1291,20 +1247,6 @@ function showResults(){
     newScores[p.id]=old+(scores.find(s=>s.id===p.id)?.roundScore||0);
   });
   db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
-
-  // ── เล่นหน้า battle ก่อน (ยกเว้นมังกร — ข้ามไปผลเลย) ──
-  if(!battleShown&&!dragon){
-    battleShown=true;
-    renderResults(players,handsById,scores); // เตรียมผลไว้เบื้องหลัง
-    showBattle(players,handsById,scores);
-    return;
-  }
-  renderResults(players,handsById,scores);
-  showScreen('result');
-}
-
-// ── หน้าผลรวม (เดิมอยู่ใน showResults) ──
-function renderResults(players,handsById,scores){
 
   document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1);
   const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
@@ -1337,103 +1279,9 @@ function renderResults(players,handsById,scores){
 
 async function nextRound(){
   resultsShown=false;
-  battleShown=false;
   hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
-  await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{},deals:{}});
+  await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{}});
 }
-
-// ── BATTLE SCREEN (เปิดไพ่สู้ทีละคู่ ทีละกอง) ──
-function fightCardHTML(c){
-  return`<div class="fight-card ${isRed(c)?'rc':'bc'}"><span class="cr">${c.rank}</span><span class="cs">${c.suit}</span></div>`;
-}
-
-function showBattle(players,handsById,scores){
-  battleTimers.forEach(t=>clearTimeout(t));
-  battleTimers=[];
-  showScreen('battle');
-  const matchups=buildMatchups(players,handsById);
-  const body=document.getElementById('battle-body');
-
-  const rowLabel={front:'หน้า',mid:'กลาง',back:'หลัง'};
-  let html='';
-  matchups.forEach((m,mi)=>{
-    const rowsHTML=m.rowResults.map(r=>{
-      const aBadge=r.winner>0?'fwin':r.winner<0?'flose':'fdraw';
-      const bBadge=r.winner<0?'fwin':r.winner>0?'flose':'fdraw';
-      const aTxt=r.winner>0?'ชนะ':r.winner<0?'แพ้':'เสมอ';
-      const bTxt=r.winner<0?'ชนะ':r.winner>0?'แพ้':'เสมอ';
-      return`<div class="fight-line">
-        <div class="fight-p">
-          <div class="fight-cards">${r.aCards.map(fightCardHTML).join('')}</div>
-          <div class="fight-hn">${r.aName||'-'}</div>
-          <div class="rbadge ${aBadge}">${aTxt}</div>
-        </div>
-        <div class="fight-vs">${rowLabel[r.key]}</div>
-        <div class="fight-p">
-          <div class="fight-cards">${r.bCards.map(fightCardHTML).join('')}</div>
-          <div class="fight-hn">${r.bName||'-'}</div>
-          <div class="rbadge ${bBadge}">${bTxt}</div>
-        </div>
-      </div>`;
-    }).join('');
-
-    const taluHTML=m.talu
-      ?`<div class="talu-banner" id="talu-${mi}">🔥 ตาลู! ${m.taluWinner.avatar} ${m.taluWinner.name} กินรวด 3 กอง (คะแนน x2)</div>`
-      :'';
-
-    const foulNote=(m.ha.foul||m.hb.foul)
-      ?`<div style="text-align:center;font-size:11px;color:#ff6060;margin-bottom:6px">⚠️ ${m.ha.foul?m.a.name:''}${m.ha.foul&&m.hb.foul?' และ ':''}${m.hb.foul?m.b.name:''} ฟาว</div>`
-      :'';
-
-    html+=`<div class="b-section" id="bsec-${mi}">
-      <div class="b-title">${m.a.avatar} ${m.a.name} &nbsp;⚔️&nbsp; ${m.b.avatar} ${m.b.name}</div>
-      ${foulNote}
-      ${rowsHTML}
-      ${taluHTML}
-    </div>`;
-  });
-
-  // สรุปคะแนนรอบนี้ตอนจบ
-  const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
-  html+=`<div class="b-section" id="bsec-final">
-    <div class="b-title">💰 คะแนนรอบนี้</div>
-    ${sorted.map(s=>{
-      const pos=s.roundScore>=0;
-      return`<div class="score-flash shown" style="opacity:1;transform:none;display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid rgba(255,220,80,.08)">
-        <span style="font-size:20px">${s.avatar}</span>
-        <span style="flex:1;font-size:14px;font-weight:700">${s.name}${s.name===myName?' (คุณ)':''}</span>
-        <span class="${pos?'pos':'neg'}" style="font-size:20px;font-weight:900">${pos?'+':''}${s.roundScore}</span>
-      </div>`;
-    }).join('')}
-    <button class="abtn abtn-ready" onclick="goToResults()" style="margin-top:12px;width:100%">📊 ดูผลรวม →</button>
-  </div>`;
-
-  body.innerHTML=html;
-  body.scrollTop=0;
-
-  // เล่นอนิเมชั่นทีละ section
-  const total=matchups.length+1;
-  for(let i=0;i<total;i++){
-    const sec=document.getElementById(i<matchups.length?`bsec-${i}`:'bsec-final');
-    const delay=600+i*1100;
-    battleTimers.push(setTimeout(()=>{
-      sec?.classList.add('shown');
-      sec?.scrollIntoView({behavior:'smooth',block:'center'});
-      // talu banner เด้งตามหลังนิดนึง
-      if(i<matchups.length&&matchups[i].talu){
-        const tb=document.getElementById(`talu-${i}`);
-        battleTimers.push(setTimeout(()=>tb?.classList.add('shown'),400));
-      }
-    },delay));
-  }
-}
-
-function goToResults(){
-  battleTimers.forEach(t=>clearTimeout(t));
-  battleTimers=[];
-  showScreen('result');
-}
-let battleTimers=[];
 
 function showScoreboard(){
   const sc=roomData.scores||{};
@@ -1449,8 +1297,7 @@ async function leaveRoom(){
     const data=snap.data()||{};
     const updates={};
     // ถ้าออกระหว่างเกม และยังไม่ได้ยืนยัน → บันทึกเป็นฟาว
-    const handsData=data.hands||{};
-    if(data.status==='playing'&&data.deals&&data.deals[myName]&&!handsData[myName]?.done){
+    if((data.status==='playing')&&data.deals&&data.deals[myName]&&!data.hands?.[myName]?.done){
       updates[`hands.${myName}`]={front:[],mid:[],back:[],done:true,foul:true};
     }
     updates[`players.${myId}`]=firebase.firestore.FieldValue.delete();
@@ -1461,7 +1308,7 @@ async function leaveRoom(){
   sessionStorage.removeItem('gr_room');
   sessionStorage.removeItem('gr_myId');
   sessionStorage.removeItem('gr_myName');
-  location.href='lobby.html';
+  location.href='room.html';
 }
 
 function confirmLeave(){
