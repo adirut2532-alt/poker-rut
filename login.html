@@ -242,11 +242,17 @@ function doLogin(){
   setTimeout(()=>{
     const p=new URLSearchParams(location.search);
     const roomCode=p.get('room')||'';
-    const roomParam=roomCode?'&room='+encodeURIComponent(roomCode):'';
-    location.href='room.html?name='+encodeURIComponent(selectedMember.name)
-      +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴')
-      +roomParam;
-  },1500);
+    if(roomCode){
+      // มี room code → เข้าห้องนั้นเลย
+      location.href='room.html?name='+encodeURIComponent(selectedMember.name)
+        +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴')
+        +'&room='+encodeURIComponent(roomCode);
+    } else {
+      // ไม่มี room code → ไปหน้าเลือกห้อง
+      location.href='lobby.html?name='+encodeURIComponent(selectedMember.name)
+        +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴');
+    }
+  },1200);
 }
 
 loadMembers();

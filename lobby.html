@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3 กอง กาญ — เลือกห้อง</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{
+  font-family:'Kanit',sans-serif;
+  background:#faf8f5;color:#1a0e00;
+  min-height:100vh;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+
+/* HEADER */
+.hdr{
+  background:#fff;border-bottom:1px solid rgba(150,80,0,.12);
+  padding:10px 16px;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));
+  display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:10;
+}
+.hdr-logo{font-size:22px;font-weight:900;color:#b85e00;flex:1;}
+.my-info{display:flex;align-items:center;gap:8px;}
+.my-av-sm{
+  width:34px;height:34px;border-radius:50%;
+  background:#fff3e0;border:2px solid rgba(192,112,16,.3);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.my-name-sm{font-size:13px;font-weight:700;color:#1a0e00;}
+.profile-btn{
+  background:none;border:1px solid rgba(150,80,0,.2);
+  border-radius:8px;padding:5px 10px;
+  font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;
+  color:#b85e00;cursor:pointer;
+}
+
+/* TABS */
+.tabs{
+  display:flex;gap:0;
+  background:#fff;border-bottom:1px solid rgba(150,80,0,.1);
+  padding:0 16px;overflow-x:auto;
+}
+.tab{
+  padding:10px 16px;font-size:13px;font-weight:700;
+  color:#b87840;border-bottom:2px solid transparent;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+}
+.tab.active{color:#b85e00;border-bottom-color:#b85e00;}
+
+/* BODY */
+.body{padding:14px 14px;}
+
+/* ROOM GRID */
+.rooms-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+/* ROOM CARD */
+.room-card{
+  background:#fff;border-radius:16px;
+  border:1px solid rgba(150,80,0,.12);
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  overflow:hidden;cursor:pointer;
+  transition:transform .1s,box-shadow .1s;
+  position:relative;
+}
+.room-card:active{transform:scale(.97);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.room-card.full{opacity:.7;}
+.room-card.playing .room-status-bar{background:linear-gradient(135deg,#1a7a3a,#0e5028);}
+.room-card.waiting .room-status-bar{background:linear-gradient(135deg,#b85e00,#8a4000);}
+.room-card.empty .room-status-bar{background:linear-gradient(135deg,#9a9a9a,#6a6a6a);}
+
+.room-status-bar{
+  padding:8px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.room-status-txt{font-size:11px;font-weight:800;color:#fff;letter-spacing:.5px;}
+.room-players-badge{
+  background:rgba(255,255,255,.2);
+  border-radius:8px;padding:2px 7px;
+  font-size:11px;font-weight:800;color:#fff;
+}
+
+.room-body{padding:10px 12px;}
+.room-code{font-size:15px;font-weight:900;color:#b85e00;letter-spacing:1px;margin-bottom:2px;}
+.room-name{font-size:11px;color:#7a4a18;font-weight:600;margin-bottom:8px;}
+
+/* Players avatars */
+.room-seats{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;}
+.seat{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+.seat.filled{background:#fff3e0;border:1.5px solid rgba(192,112,16,.3);}
+.seat.empty-seat{
+  background:#f5f0e8;border:1.5px dashed rgba(150,80,0,.2);
+  font-size:12px;color:rgba(150,80,0,.3);
+}
+.seat.you{border-color:#b85e00;box-shadow:0 0 0 2px rgba(184,94,0,.2);}
+
+.room-round{font-size:10px;color:#b87840;font-weight:600;}
+
+/* JOIN BTN */
+.room-join-btn{
+  width:100%;padding:8px;border:none;border-radius:10px;
+  font-family:'Kanit',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;margin-top:4px;
+}
+.btn-join{background:linear-gradient(160deg,#e08000,#b05800);color:#fff;}
+.btn-watch{background:#e8f0ff;color:#1460a0;}
+.btn-rejoin{background:linear-gradient(160deg,#20b060,#0e6030);color:#fff;}
+.btn-full{background:#f0ebe3;color:#9a7060;cursor:not-allowed;}
+
+/* EMPTY STATE */
+.empty-state{
+  grid-column:1/-1;
+  text-align:center;padding:40px 20px;
+  color:#b87840;font-size:14px;
+}
+
+/* REFRESH */
+.refresh-btn{
+  display:flex;align-items:center;gap:6px;
+  background:#fff;border:1px solid rgba(150,80,0,.15);
+  border-radius:10px;padding:8px 14px;
+  font-family:'Kanit',sans-serif;font-size:13px;font-weight:700;
+  color:#b85e00;cursor:pointer;margin-bottom:12px;
+  width:100%;justify-content:center;
+}
+
+/* LOADING */
+.loading{text-align:center;padding:40px;color:#b87840;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid rgba(184,94,0,.2);border-top-color:#b85e00;border-radius:50%;animation:spin .6s linear infinite;margin-bottom:8px;}
+
+/* BADGE */
+.badge-you{
+  position:absolute;top:8px;right:8px;
+  background:#b85e00;color:#fff;
+  font-size:9px;font-weight:900;
+  padding:2px 6px;border-radius:6px;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">🃏 3 กอง กาญ</div>
+  <div class="my-info">
+    <div class="my-av-sm" id="hdr-av">🦊</div>
+    <div class="my-name-sm" id="hdr-name">กำลังโหลด...</div>
+    <button class="profile-btn" onclick="location.href='profile.html?name='+encodeURIComponent(myName)">✏️</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="setFilter('all',this)">🏠 ทั้งหมด</div>
+  <div class="tab" onclick="setFilter('waiting',this)">⏳ รอผู้เล่น</div>
+  <div class="tab" onclick="setFilter('playing',this)">🎮 กำลังเล่น</div>
+  <div class="tab" onclick="setFilter('mine',this)">⭐ ของฉัน</div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+  <button class="refresh-btn" onclick="loadRooms()">🔄 รีเฟรชห้อง</button>
+  <div class="rooms-grid" id="rooms-grid">
+    <div class="loading" style="grid-column:1/-1">
+      <div class="spinner"></div><br>กำลังโหลดห้อง...
+    </div>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+});
+const db=firebase.firestore();
+
+let myName='',myAvatar='🎴',allRooms=[],currentFilter='all',unsub=null;
+
+// ── โหลดข้อมูลตัวเอง ──
+function loadMe(){
+  const session=JSON.parse(sessionStorage.getItem('player')||'null');
+  const p=new URLSearchParams(location.search);
+  myName=session?.name||p.get('name')||'';
+  myAvatar=session?.avatar||p.get('avatar')||'🎴';
+  if(!myName){location.href='login.html';return;}
+  document.getElementById('hdr-av').textContent=myAvatar;
+  document.getElementById('hdr-name').textContent=myName;
+}
+
+// ── โหลดห้องจาก Firebase ──
+function loadRooms(){
+  if(unsub)unsub();
+  document.getElementById('rooms-grid').innerHTML=
+    `<div class="loading" style="grid-column:1/-1"><div class="spinner"></div><br>กำลังโหลด...</div>`;
+  // ดึงรายการห้องจาก admin data
+  db.collection('admin').doc('data').get().then(snap=>{
+    const adminRooms=(snap.exists?snap.data().rooms:[]).filter(r=>r.code)||[];
+    if(!adminRooms.length){
+      document.getElementById('rooms-grid').innerHTML=
+        `<div class="empty-state">ยังไม่มีห้องเกม<br>Admin ยังไม่ได้สร้างห้องครับ</div>`;
+      return;
+    }
+    // ฟัง real-time ทุกห้อง
+    Promise.all(adminRooms.map(r=>
+      db.collection('rooms').doc(r.code).get()
+    )).then(snaps=>{
+      allRooms=adminRooms.map((r,i)=>{
+        const fb=snaps[i].exists?snaps[i].data():{};
+        return{...r,...fb,code:r.code,adminName:r.name};
+      });
+      renderRooms();
+    });
+    // real-time listener ห้องแรกที่เจอ (ตัวอย่าง)
+    unsub=db.collection('admin').doc('data').onSnapshot(snap=>{
+      if(!snap.exists)return;
+      const rooms=(snap.data().rooms||[]).filter(r=>r.code);
+      Promise.all(rooms.map(r=>db.collection('rooms').doc(r.code).get())).then(snaps=>{
+        allRooms=rooms.map((r,i)=>{
+          const fb=snaps[i].exists?snaps[i].data():{};
+          return{...r,...fb,code:r.code,adminName:r.name};
+        });
+        renderRooms();
+      });
+    });
+  }).catch(e=>{
+    document.getElementById('rooms-grid').innerHTML=
+      `<div class="empty-state">⚠️ โหลดไม่ได้: ${e.message}</div>`;
+  });
+}
+
+// ── Render ──
+function renderRooms(){
+  let rooms=allRooms;
+  if(currentFilter==='waiting') rooms=rooms.filter(r=>r.status==='lobby'||!r.status);
+  if(currentFilter==='playing') rooms=rooms.filter(r=>r.status==='playing'||r.status==='results');
+  if(currentFilter==='mine') rooms=rooms.filter(r=>{
+    const players=r.players||{};
+    return Object.values(players).some(p=>p.name===myName);
+  });
+
+  if(!rooms.length){
+    document.getElementById('rooms-grid').innerHTML=
+      `<div class="empty-state">ไม่มีห้องที่ตรงเงื่อนไขครับ</div>`;
+    return;
+  }
+
+  document.getElementById('rooms-grid').innerHTML=rooms.map(r=>roomCard(r)).join('');
+}
+
+function roomCard(r){
+  const players=r.players||{};
+  const active=Object.values(players).filter(p=>!p.isSpectator&&!p.isQueue);
+  const queueList=Object.values(players).filter(p=>p.isQueue);
+  const maxPlayers=4;
+  const count=active.length;
+  const isFull=count>=maxPlayers;
+  const isPlaying=r.status==='playing'||r.status==='confirming'||r.status==='results';
+  const isWaiting=r.status==='lobby'||!r.status;
+  const amInRoom=Object.values(players).some(p=>p.name===myName);
+  const amActive=active.some(p=>p.name===myName);
+
+  const statusClass=isPlaying?'playing':count>0?'waiting':'empty';
+  const statusTxt=isPlaying?'🎮 กำลังเล่น':count>0?'⏳ รอผู้เล่น':'🟢 ว่าง';
+
+  // Seats
+  const seats=Array(maxPlayers).fill(0).map((_,i)=>{
+    const p=active[i];
+    if(p){
+      const isMe=p.name===myName;
+      return`<div class="seat filled ${isMe?'you':''}" title="${p.name}">${p.avatar||'🎴'}</div>`;
+    }
+    return`<div class="seat empty-seat">+</div>`;
+  }).join('');
+
+  // Button
+  let btn='';
+  if(amActive&&isPlaying){
+    btn=`<button class="room-join-btn btn-rejoin" onclick="enterRoom('${r.code}')">▶ กลับเข้าห้อง</button>`;
+  } else if(amInRoom){
+    btn=`<button class="room-join-btn btn-rejoin" onclick="enterRoom('${r.code}')">▶ เข้าห้อง</button>`;
+  } else if(!isFull&&isWaiting){
+    btn=`<button class="room-join-btn btn-join" onclick="enterRoom('${r.code}')">เข้าร่วม →</button>`;
+  } else if(isPlaying){
+    btn=`<button class="room-join-btn btn-watch" onclick="enterRoom('${r.code}')">👁 นั่งดู</button>`;
+  } else if(isFull){
+    btn=`<button class="room-join-btn btn-watch" onclick="enterRoom('${r.code}')">⏳ รอคิว</button>`;
+  }
+
+  return`<div class="room-card ${statusClass} ${isFull?'full':''}">
+    ${amInRoom?`<div class="badge-you">คุณอยู่ที่นี่</div>`:''}
+    <div class="room-status-bar">
+      <span class="room-status-txt">${statusTxt}</span>
+      <span class="room-players-badge">${count}/${maxPlayers}</span>
+    </div>
+    <div class="room-body">
+      <div class="room-code">${r.code}</div>
+      <div class="room-name">${r.adminName||r.name||'ห้องเกม'}</div>
+      <div class="room-seats">${seats}</div>
+      ${queueList.length>0?`<div style="font-size:10px;color:#b87840;margin-bottom:4px">⏳ รอคิว ${queueList.length} คน</div>`:''}
+      ${r.round?`<div class="room-round">รอบที่ ${r.round}</div>`:''}
+      ${btn}
+    </div>
+  </div>`;
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderRooms();
+}
+
+function enterRoom(code){
+  // บันทึกชื่อ+ห้องแล้ว redirect ไป room.html
+  const params=new URLSearchParams({
+    room:code,
+    name:myName,
+    avatar:myAvatar
+  });
+  location.href='room.html?'+params.toString();
+}
+
+// ── Init ──
+loadMe();
+loadRooms();
+</script>
+</body>
+</html>

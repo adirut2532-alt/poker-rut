@@ -540,7 +540,7 @@ async function renderRooms(){
           <div style="display:flex;align-items:center;gap:10px">
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                <span style="font-size:16px;font-weight:800;color:#b85e00;letter-spacing:2px">${r.code}</span>
+                <span style="font-size:16px;font-weight:800;color:${r.code?'#b85e00':'#aaa'};letter-spacing:2px">${r.code||'(ไม่มี code)'}</span>
                 ${statusLabel(fb.status)}
               </div>
               <div style="font-size:12px;color:#7a4a18">
@@ -551,8 +551,8 @@ async function renderRooms(){
               </div>
             </div>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-sm btn-gray" onclick="copyRoomLink('${r.code}')">📤 แชร์</button>
-              <button class="btn btn-sm btn-red" onclick="deleteRoom('${r.code}')">🗑</button>
+              ${r.code?`<button class="btn btn-sm btn-gray" onclick="copyRoomLink('${r.code}')">📤 แชร์</button>`:''}
+              <button class="btn btn-sm btn-red" onclick="deleteRoomByIndex(${i})">🗑</button>
             </div>
           </div>
         </div>`;
@@ -626,26 +626,19 @@ function shareRoom(link,code){
   }
 }
 
-async function deleteRoom(code){
-  const i=(DB.rooms||[]).findIndex(r=>r.code===code);
-  if(i===-1){
-    // ไม่มีใน localStorage แต่อาจมีใน Firestore → ลบ Firestore อย่างเดียว
-    if(!confirm('ลบห้อง "'+code+'" ?'))return;
-    if(window.fbAdminReady){
-      try{await fbdb.collection('rooms').doc(code).delete();}catch(e){console.warn(e);}
-    }
-    renderRooms();
-    toast('🗑 ลบห้อง '+code+' แล้ว');
-    return;
-  }
-  if(!confirm('ลบห้อง "'+code+'" ?\nผู้เล่นในห้องจะถูกเด้งออกทั้งหมด'))return;
-  if(window.fbAdminReady){
-    try{await fbdb.collection('rooms').doc(code).delete();}catch(e){console.warn('fbDelete error',e);}
+async function deleteRoomByIndex(i){
+  const room=(DB.rooms||[])[i];
+  if(!room){toast('⚠️ ไม่พบห้องนี้');return;}
+  if(!confirm('ลบห้องนี้?'+(room.code?' ('+room.code+')':''))){return;}
+  // ลบจาก Firestore ถ้ามี code
+  if(window.fbAdminReady&&room.code){
+    try{await fbdb.collection('rooms').doc(room.code).delete();}
+    catch(e){console.warn('fbDelete',e);}
   }
   DB.rooms.splice(i,1);
   save();
   renderRooms();
-  toast('🗑 ลบห้อง '+code+' แล้ว');
+  toast('🗑 ลบห้องแล้ว');
 }
 
 /* MEMBERS */
