@@ -552,7 +552,7 @@ async function renderRooms(){
             </div>
             <div style="display:flex;gap:6px">
               <button class="btn btn-sm btn-gray" onclick="copyRoomLink('${r.code}')">📤 แชร์</button>
-              <button class="btn btn-sm btn-red" onclick="deleteRoom(${i})">🗑</button>
+              <button class="btn btn-sm btn-red" onclick="deleteRoom('${r.code}')">🗑</button>
             </div>
           </div>
         </div>`;
@@ -626,21 +626,26 @@ function shareRoom(link,code){
   }
 }
 
-async function deleteRoom(i){
-  const room=DB.rooms[i];
-  if(!room)return;
-  if(!confirm(`ลบห้อง "${room.code}" ?\nผู้เล่นในห้องจะถูกเด้งออกทั้งหมด`))return;
-  // ลบจาก Firestore
-  if(window.fbAdminReady){
-    try{
-      await fbdb.collection('rooms').doc(room.code).delete();
-    }catch(e){console.warn('fbDelete error',e);}
+async function deleteRoom(code){
+  const i=(DB.rooms||[]).findIndex(r=>r.code===code);
+  if(i===-1){
+    // ไม่มีใน localStorage แต่อาจมีใน Firestore → ลบ Firestore อย่างเดียว
+    if(!confirm('ลบห้อง "'+code+'" ?'))return;
+    if(window.fbAdminReady){
+      try{await fbdb.collection('rooms').doc(code).delete();}catch(e){console.warn(e);}
+    }
+    renderRooms();
+    toast('🗑 ลบห้อง '+code+' แล้ว');
+    return;
   }
-  // ลบจาก localStorage
+  if(!confirm('ลบห้อง "'+code+'" ?\nผู้เล่นในห้องจะถูกเด้งออกทั้งหมด'))return;
+  if(window.fbAdminReady){
+    try{await fbdb.collection('rooms').doc(code).delete();}catch(e){console.warn('fbDelete error',e);}
+  }
   DB.rooms.splice(i,1);
   save();
   renderRooms();
-  toast('🗑 ลบห้อง '+room.code+' แล้ว');
+  toast('🗑 ลบห้อง '+code+' แล้ว');
 }
 
 /* MEMBERS */

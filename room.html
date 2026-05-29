@@ -228,6 +228,8 @@ async function joinRoom(){
     updates[`players.${myId}`]={name,avatar:av,ready:false,isHost,score:0,joinedAt:Date.now()};
     await ref.update(updates);
     showErr('');
+    sessionStorage.setItem('last_room',code);
+    sessionStorage.setItem('last_name',name);
     document.getElementById('lob-code').textContent=code;
     showScreen('lobby');
     listen();
@@ -537,9 +539,9 @@ async function leaveRoom(){
 
 // ── AUTO-FILL FROM URL ──
 const up=new URLSearchParams(location.search);
-const urlRoom=up.get('room');
-const urlName=up.get('name');
-const urlAvatar=up.get('avatar');
+const urlRoom=up.get('room')||sessionStorage.getItem('last_room')||'';
+const urlName=up.get('name')||sessionStorage.getItem('last_name')||'';
+const urlAvatar=up.get('avatar')||'';
 
 if(urlRoom) document.getElementById('inp-code').value=urlRoom;
 if(urlName) document.getElementById('inp-name').value=urlName;
