@@ -776,23 +776,28 @@ function listen(){
       if(cur!=='lobby')showScreen('lobby');
       renderLobby();
     } else if(st==='playing'){
-      if(cur==='lobby'||cur==='result'||cur==='game'){
-        // เช็คว่ามีไพ่ของเราในรอบนี้แล้วหรือยัง
-        const hasMycards=!!(roomData.deals||{})[myName]?.length;
-        if(hasMycards){
-          // มีไพ่แล้ว — ถ้า hand ยังว่างอยู่ให้ startRound
-          if(!hand.unplaced.length&&!hand.front.length&&!hand.mid.length&&!hand.back.length&&!hand.done){
-            resultsShown=false;
-            startRound();
-          } else {
-            renderGame();
-            autoCheckDone();
-          }
-        } else {
-          // deals ยังไม่มา — รอ
-          resultsShown=false;
-          hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
+      const hasMycards=!!(roomData.deals||{})[myName]?.length;
+      if(!hasMycards){
+        // deals ยังไม่มา → แสดงหน้ารอ แต่ไม่เรียก startRound
+        if(cur!=='game') showScreen('game');
+        document.getElementById('game-body').innerHTML=`
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+            <div style="font-size:36px">⏳</div>
+            <div style="font-size:14px;color:#f0c040;font-weight:700">รอรับไพ่...</div>
+            <div style="font-size:11px;color:#c8a860">กำลังรอ Host แจกไพ่</div>
+          </div>`;
+      } else if(cur==='lobby'||cur==='result'){
+        resultsShown=false;
+        hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
+        startRound();
+      } else if(cur==='game'){
+        // มีไพ่แล้ว แต่ hand ว่าง → startRound
+        const handEmpty=!hand.unplaced.length&&!hand.front.length&&!hand.mid.length&&!hand.back.length&&!hand.done;
+        if(handEmpty){
           startRound();
+        } else {
+          renderGame();
+          autoCheckDone();
         }
       }
     } else if(st==='confirming'){
@@ -864,23 +869,12 @@ async function hostStart(){
 
 // ── START ROUND ──
 function startRound(){
-  hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
   const deals=roomData.deals||{};
   const players=roomData.players||{};
   const myCards=deals[myName]||[];
-
-  // deals ยังไม่มา → รอ
-  if(!myCards.length&&Object.keys(deals).length===0){
-    showScreen('game');
-    document.getElementById('game-body').innerHTML=`
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-        <div style="font-size:36px">⏳</div>
-        <div style="font-size:14px;color:#f0c040;font-weight:700">รอรับไพ่...</div>
-      </div>`;
-    return;
-  }
-
   const myRole=Object.values(players).find(p=>p.name===myName);
+
+  hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
 
   if(!myCards.length||myRole?.isSpectator||myRole?.isQueue){
     document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);
