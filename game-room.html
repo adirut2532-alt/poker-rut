@@ -776,13 +776,24 @@ function listen(){
       if(cur!=='lobby')showScreen('lobby');
       renderLobby();
     } else if(st==='playing'){
-      if(cur==='lobby'||cur==='result'){
-        resultsShown=false;
-        hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
-        startRound();
-      } else if(cur==='game'){
-        renderGame();
-        autoCheckDone();
+      if(cur==='lobby'||cur==='result'||cur==='game'){
+        // เช็คว่ามีไพ่ของเราในรอบนี้แล้วหรือยัง
+        const hasMycards=!!(roomData.deals||{})[myName]?.length;
+        if(hasMycards){
+          // มีไพ่แล้ว — ถ้า hand ยังว่างอยู่ให้ startRound
+          if(!hand.unplaced.length&&!hand.front.length&&!hand.mid.length&&!hand.back.length&&!hand.done){
+            resultsShown=false;
+            startRound();
+          } else {
+            renderGame();
+            autoCheckDone();
+          }
+        } else {
+          // deals ยังไม่มา — รอ
+          resultsShown=false;
+          hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
+          startRound();
+        }
       }
     } else if(st==='confirming'){
       if(cur==='game'){renderGame();autoCheckDone();}
@@ -853,14 +864,23 @@ async function hostStart(){
 
 // ── START ROUND ──
 function startRound(){
-  // reset ก่อนเสมอ
   hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
   const deals=roomData.deals||{};
   const players=roomData.players||{};
-
-  // ใช้ชื่อเป็น key โดยตรง
   const myCards=deals[myName]||[];
-  const myRole=players[myId]||Object.values(players).find(p=>p.name===myName);
+
+  // deals ยังไม่มา → รอ
+  if(!myCards.length&&Object.keys(deals).length===0){
+    showScreen('game');
+    document.getElementById('game-body').innerHTML=`
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+        <div style="font-size:36px">⏳</div>
+        <div style="font-size:14px;color:#f0c040;font-weight:700">รอรับไพ่...</div>
+      </div>`;
+    return;
+  }
+
+  const myRole=Object.values(players).find(p=>p.name===myName);
 
   if(!myCards.length||myRole?.isSpectator||myRole?.isQueue){
     document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);
@@ -870,11 +890,7 @@ function startRound(){
     return;
   }
 
-  hand={
-    front:[],mid:[],back:[],
-    unplaced:[...myCards].sort((a,b)=>b.val-a.val||(SUIT_RANK[b.suit]-SUIT_RANK[a.suit])),
-    done:false,foul:false
-  };
+  hand.unplaced=[...myCards].sort((a,b)=>b.val-a.val||(SUIT_RANK[b.suit]-SUIT_RANK[a.suit]));
   document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);
   showScreen('game');
   initChat();
@@ -988,6 +1004,12 @@ function renderGame(){
 
   const allPlaced=hand.unplaced.length===0;
   const isValid=allPlaced&&validArr(hand.front,hand.mid,hand.back);
+
+  // ถ้า hand.done=true แต่ไม่มีไพ่ในรอบนี้ → reset
+  const myCardsThisRound=(roomData.deals||{})[myName]||[];
+  if(hand.done && !myCardsThisRound.length){
+    hand.done=false;
+  }
 
   // Waiting
   if(hand.done){
