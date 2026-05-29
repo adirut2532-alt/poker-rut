@@ -240,8 +240,12 @@ function doLogin(){
   document.getElementById('profile-link').href=
     'profile.html?name='+encodeURIComponent(selectedMember.name);
   setTimeout(()=>{
+    const p=new URLSearchParams(location.search);
+    const roomCode=p.get('room')||'';
+    const roomParam=roomCode?'&room='+encodeURIComponent(roomCode):'';
     location.href='room.html?name='+encodeURIComponent(selectedMember.name)
-      +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴');
+      +'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴')
+      +roomParam;
   },1500);
 }
 

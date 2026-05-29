@@ -79,21 +79,35 @@ html,body{font-family:'Kanit',sans-serif;background:var(--bg);color:var(--text);
     <div class="logo-title">🃏 3 กอง กาญ</div>
     <div class="logo-sub">ระบบห้องเกม Real-time</div>
   </div>
-  <div class="card-box">
+  <div class="card-box" id="join-box">
     <h2>🚪 เข้าร่วมห้อง</h2>
-    <div class="field">
-      <label>Room Code</label>
-      <input type="text" id="inp-code" class="code-input" placeholder="KAN-123" maxlength="10" autocomplete="off"
-        oninput="this.value=this.value.toUpperCase()">
+    <!-- แสดงเฉพาะเมื่อไม่มี room+name จาก URL -->
+    <div id="manual-fields">
+      <div class="field">
+        <label>Room Code</label>
+        <input type="text" id="inp-code" class="code-input" placeholder="KAN-123" maxlength="10" autocomplete="off"
+          oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="field">
+        <label>ชื่อของคุณ</label>
+        <input type="text" id="inp-name" placeholder="เช่น สมชาย" maxlength="12" autocomplete="off">
+      </div>
     </div>
-    <div class="field">
-      <label>ชื่อของคุณ</label>
-      <input type="text" id="inp-name" placeholder="เช่น สมชาย" maxlength="12" autocomplete="off">
+    <!-- แสดงเมื่อมาจาก login → auto-join -->
+    <div id="auto-join-box" style="display:none;text-align:center;padding:12px 0;">
+      <div id="auto-av" style="font-size:48px;margin-bottom:8px">🦊</div>
+      <div id="auto-name" style="font-size:18px;font-weight:800;color:#1a0e00;margin-bottom:4px">—</div>
+      <div style="font-size:13px;color:#b87840;margin-bottom:16px">กำลังเข้าห้อง...</div>
+      <div style="display:flex;gap:6px;justify-content:center">
+        <div style="width:8px;height:8px;border-radius:50%;background:#b85e00;animation:pulse 1.4s infinite"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#b85e00;animation:pulse 1.4s .2s infinite"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#b85e00;animation:pulse 1.4s .4s infinite"></div>
+      </div>
     </div>
     <div id="join-err" class="err"></div>
-    <button class="btn btn-gold" onclick="joinRoom()">▶ เข้าห้อง</button>
+    <button class="btn btn-gold" id="join-btn" onclick="joinRoom()">▶ เข้าห้อง</button>
   </div>
-  <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px">
+  <div id="join-footer" style="text-align:center;font-size:12px;color:var(--muted);margin-top:4px">
     Admin เป็นคนสร้างห้องและส่ง Room Code ให้ครับ
   </div>
 </div>
@@ -320,17 +334,26 @@ async function leaveRoom(){
 const up=new URLSearchParams(location.search);
 const urlRoom=up.get('room');
 const urlName=up.get('name');
-if(urlRoom){
-  document.getElementById('inp-code').value=urlRoom;
-  // ซ่อน field room code ถ้ามาจากลิงก์
-  const codeField=document.getElementById('inp-code').closest('.field');
-  if(codeField){
-    codeField.style.display='none';
-  }
-  // โฟกัสที่ชื่อแทน
+const urlAvatar=up.get('avatar');
+
+if(urlRoom) document.getElementById('inp-code').value=urlRoom;
+if(urlName) document.getElementById('inp-name').value=urlName;
+
+// ถ้ามี room + name ครบ → ซ่อน manual form แล้ว auto-join
+if(urlRoom && urlName){
+  document.getElementById('manual-fields').style.display='none';
+  document.getElementById('join-btn').style.display='none';
+  document.getElementById('join-footer').style.display='none';
+  document.getElementById('auto-join-box').style.display='block';
+  document.getElementById('auto-av').textContent=urlAvatar||'🎴';
+  document.getElementById('auto-name').textContent=urlName;
+  // auto-join หลัง Firebase โหลด
+  setTimeout(()=>joinRoom(), 800);
+} else if(urlRoom){
+  // มี room แต่ไม่มีชื่อ → ซ่อน room code field
+  document.getElementById('inp-code').closest('.field').style.display='none';
   setTimeout(()=>document.getElementById('inp-name').focus(),300);
 }
-if(urlName) document.getElementById('inp-name').value=urlName;
 </script>
 </body>
 </html>
