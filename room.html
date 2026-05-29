@@ -243,14 +243,12 @@ async function startGame(){
 
 // ── OPEN GAME ──
 function openGame(data){
-  const players=Object.entries(data.players||{}).map(([id,p])=>({id,name:p.name,avatar:p.avatar,isMe:id===myId}));
   const params=new URLSearchParams({
     room:roomId,
     myId:myId,
     myName:encodeURIComponent(myName),
-    players:JSON.stringify(players)
   });
-  window.location.href='thai-poker13.html?'+params.toString();
+  window.location.href='game-room.html?'+params.toString();
 }
 
 // ── WAITING (after confirm) ──
@@ -272,7 +270,7 @@ async function undoConfirm(){
   updates[`players.${myId}.ready`]=false;
   updates['status']='playing';
   await db.collection('rooms').doc(roomId).update(updates);
-  window.location.href='thai-poker13.html?room='+roomId+'&myId='+myId+'&myName='+encodeURIComponent(myName)+'&undo=1';
+  window.location.href='game-room.html?room='+roomId+'&myId='+myId+'&myName='+encodeURIComponent(myName);
 }
 
 async function checkAllDone(){
