@@ -168,7 +168,7 @@ async function loadMembers(){
     const snap=await db.collection('admin').doc('data').get();
     if(!snap.exists){showNoMembers();return;}
     const data=snap.data();
-    members=(data.members||[]).filter(m=>m.name&&m.password);
+    members=(data.members||[]).filter(m=>m.name&&(m.password||m.pw));
     if(!members.length){showNoMembers();return;}
     renderMembers();
   }catch(e){
@@ -185,7 +185,7 @@ function showNoMembers(){
 function renderMembers(){
   const grid=document.getElementById('member-grid');
   grid.innerHTML=members.map((m,i)=>{
-    const chip=m.chips||0;
+    const chip=m.wallet||m.chips||0;
     const chipStr=(chip>=0?'+':'')+chip;
     return`<div class="member-btn" id="mb-${i}" onclick="selectMember(${i})">
       <div class="member-av">${m.avatar||'🎴'}</div>
@@ -216,7 +216,7 @@ function doLogin(){
   if(!selectedMember){document.getElementById('err-msg').textContent='กรุณาเลือกชื่อของคุณก่อนครับ';return;}
   const pwd=document.getElementById('pwd').value.trim();
   if(!pwd){document.getElementById('err-msg').textContent='กรุณากรอกรหัสผ่านครับ';return;}
-  if(pwd!==selectedMember.password){
+  if(pwd!==(selectedMember.password||selectedMember.pw)){
     document.getElementById('err-msg').textContent='❌ รหัสผ่านไม่ถูกต้อง ลองใหม่ครับ';
     document.getElementById('pwd').value='';
     document.getElementById('pwd').focus();
