@@ -712,6 +712,21 @@ window.addEventListener('load',async()=>{
 
   document.getElementById('lob-code').textContent=roomId;
   document.getElementById('hdr-room').textContent='ห้อง '+roomId;
+
+  // ตรวจสอบ status ปัจจุบันทันที ก่อน listen
+  try{
+    const nowSnap=await db.collection('rooms').doc(roomId).get();
+    if(nowSnap.exists){
+      const nowData=nowSnap.data();
+      roomData=nowData;
+      if(nowData.status==='results'){
+        showResults();
+        listen();
+        return;
+      }
+    }
+  }catch(e){}
+
   listen();
 });
 
@@ -1152,48 +1167,59 @@ async function checkAllDone(){
 
 // ── SHOW RESULTS ──
 function showResults(){
-  const players=Object.values(roomData.players||{});
+  // switch screen ทันที ไม่รอ
+  showScreen('result');
+  initChat();
+
+  const players=Object.values(roomData.players||{}).filter(p=>!p.isSpectator&&!p.isQueue);
   const hands=roomData.hands||{};
-  if(!players.length||!Object.keys(hands).length)return;
-  // map hands key (name) → player
+  // hands ใช้ชื่อเป็น key → map ให้ตรงกับ player
+  const handsById={};
+  players.forEach(p=>{
+    handsById[p.name]=hands[p.name]||hands[p.id]||{front:[],mid:[],back:[],done:false,foul:false};
+  });
+
+  if(!players.length||!Object.keys(handsById).length){
+    document.getElementById('res-list').innerHTML='<div style="text-align:center;color:#c8a860;padding:20px">กำลังโหลดผล...</div>';
+    return;
+  }
 
   // ตรวจ dragon
-  const dragon=players.find(p=>isDragonHand(hands[p.id]||{front:[],mid:[],back:[]}));
+  const dragon=players.find(p=>isDragonHand(handsById[p.name]||{front:[],mid:[],back:[]}));
 
   let scores;
   if(dragon){
     scores=players.map(p=>({
       id:p.id,name:p.name,avatar:p.avatar,
-      roundScore:p.id===dragon.id?30*(players.length-1):-30,
-      bonusLabel:p.id===dragon.id?'🐉 ไพ่มังกร':'',
+      roundScore:p.name===dragon.name?30*(players.length-1):-30,
+      bonusLabel:p.name===dragon.name?'🐉 ไพ่มังกร':'',
       taluCount:0,isDarby:false
     }));
   }else{
-    scores=calcScores(players,hands);
+    // calcScores ต้องการ hands[id] → สร้าง handsForCalc
+    const handsForCalc={};
+    players.forEach(p=>{ handsForCalc[p.id]=handsById[p.name]; });
+    scores=calcScores(players,handsForCalc);
   }
 
-  // บันทึกคะแนนสะสม
-  if(isHost){
-    const newScores={};
-    players.forEach(p=>{
-      const old=(roomData.scores||{})[p.id]||0;
-      newScores[p.id]=old+(scores.find(s=>s.id===p.id)?.roundScore||0);
-    });
-    db.collection('rooms').doc(roomId).update({scores:newScores});
-  }
+  // บันทึกคะแนนสะสม (ทุกคนบันทึกได้ — ค่าเหมือนกัน)
+  const newScores={};
+  players.forEach(p=>{
+    const old=(roomData.scores||{})[p.id]||0;
+    newScores[p.id]=old+(scores.find(s=>s.id===p.id)?.roundScore||0);
+  });
+  db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
 
-  // แสดงผล
-  showScreen('result');
-  initChat();
   document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1);
   const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
   document.getElementById('res-list').innerHTML=sorted.map((s,i)=>{
     const medals=['🥇','🥈','🥉','4️⃣'];
     const pos=s.roundScore>=0;
-    const tags=[`หน้า: ${evalHand((hands[s.id]||{}).front||[]).name}`,`กลาง: ${evalHand((hands[s.id]||{}).mid||[]).name}`,`หลัง: ${evalHand((hands[s.id]||{}).back||[]).name}`];
+    const h=handsById[s.name]||{};
+    const tags=[`หน้า: ${evalHand(h.front||[]).name}`,`กลาง: ${evalHand(h.mid||[]).name}`,`หลัง: ${evalHand(h.back||[]).name}`];
     return`<div class="res-card">
       <div class="res-nm">
-        <span>${medals[i]||''} ${s.avatar} ${s.name}${s.id===myId?' (คุณ)':''}</span>
+        <span>${medals[i]||''} ${s.avatar} ${s.name}${s.name===myName?' (คุณ)':''}</span>
         <span class="res-total ${pos?'pos':'neg'}">${pos?'+':''}${s.roundScore}</span>
       </div>
       <div class="res-rows">${tags.map(t=>`<span class="res-tag">${t}</span>`).join('')}${s.bonusLabel?`<span class="res-tag">⭐ ${s.bonusLabel}</span>`:''}</div>
