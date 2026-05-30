@@ -266,6 +266,10 @@ html,body{
 }
 .wait-title{font-size:15px;font-weight:800;color:#f0c040;}
 .wait-sub{font-size:11px;color:#c8a860;}
+.wait-stats{display:flex;gap:10px;width:100%;max-width:300px;margin:8px 0 2px;}
+.wait-stat{flex:1;background:rgba(255,220,80,.08);border:1px solid rgba(255,220,80,.18);border-radius:12px;padding:10px 6px;text-align:center;}
+.ws-num{font-size:22px;font-weight:900;color:#f0c040;line-height:1.1;}
+.ws-lbl{font-size:10px;color:#c8a860;margin-top:3px;font-weight:700;}
 @keyframes dot{0%,80%,100%{transform:scale(0);}40%{transform:scale(1);}}
 .dots span{
   display:inline-block;width:7px;height:7px;border-radius:50%;
@@ -1220,6 +1224,16 @@ function renderGame(){
             <div class="wait-title">✅ ยืนยันแล้ว</div>
             <div class="wait-sub">รอผู้เล่นอื่นจัดไพ่...</div>
             <div class="dots"><span></span><span></span><span></span></div>
+            <div class="wait-stats">
+              <div class="wait-stat">
+                <div class="ws-num">${roomData.round||1}</div>
+                <div class="ws-lbl">🎲 เล่นไป (รอบ)</div>
+              </div>
+              <div class="wait-stat">
+                <div class="ws-num" style="color:${chipVal>=0?'#40e880':'#ff8080'}">${chipVal>=0?'+':''}${Math.round(chipVal*100)/100}</div>
+                <div class="ws-lbl">${chipVal>=0?'📈 กำไร':'📉 ขาดทุน'} (ชิบ)</div>
+              </div>
+            </div>
             ${!allDone
               ?`<button class="abtn abtn-auto" onclick="undoConfirm()" style="max-width:160px;font-size:12px;margin-top:4px">↩ จัดใหม่</button>`
               :`<div style="font-size:12px;color:#40e880;font-weight:700">ทุกคนพร้อมแล้ว! 🎉</div>`}
