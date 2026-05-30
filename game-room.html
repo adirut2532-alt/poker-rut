@@ -1808,7 +1808,17 @@ function saveRoundToHistory(players,handsById,scores){
       };
     });
     const rec={round,ts:Date.now(),rows};
-    db.collection('rooms').doc(roomId).update({['history.'+round]:rec}).catch(()=>{});
+    const updates={['history.'+round]:rec};
+    // ── จำกัดประวัติไว้ 10 รอบล่าสุด: ลบรอบเก่าออก กันเอกสารห้องบวม (ต้นเหตุหน่วง) ──
+    const KEEP=10;
+    const existing=Object.keys(roomData.history||{}).map(Number).filter(n=>!isNaN(n));
+    const allRounds=Array.from(new Set(existing.concat(round))).sort((a,b)=>a-b);
+    if(allRounds.length>KEEP){
+      allRounds.slice(0,allRounds.length-KEEP).forEach(r=>{
+        updates['history.'+r]=firebase.firestore.FieldValue.delete();
+      });
+    }
+    db.collection('rooms').doc(roomId).update(updates).catch(()=>{});
   }catch(e){console.warn('saveRoundToHistory',e);}
 }
 
