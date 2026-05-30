@@ -754,8 +754,8 @@ function bonus(cards,row){
   const isAAA=h.name==='ฟูลเฮ้าส์'&&rc[14]===3;
   const isAA=h.name==='คู่'&&rc[14]===2;
   if(row==='front'){if(h.name==='ตอง')return{pts:5,label:'ตอง+5'};if(isAA)return{pts:2,label:'AA+2'};}
-  else if(row==='mid'){if(h.name==='สตรีทฟลัช')return{pts:14,label:'SF+14'};if(h.name==='สี่ตัว')return{pts:12,label:'4ตัว+12'};if(isAAA)return{pts:4,label:'AAA FH+4'};if(h.name==='ฟูลเฮ้าส์')return{pts:2,label:'FH+2'};}
-  else{if(h.name==='สตรีทฟลัช')return{pts:7,label:'SF+7'};if(h.name==='สี่ตัว')return{pts:6,label:'4ตัว+6'};if(isAAA)return{pts:2,label:'AAA FH+2'};}
+  else if(row==='mid'){if(h.name==='ฟลัชหลวง')return{pts:16,label:'RF+16'};if(h.name==='สตรีทฟลัช')return{pts:14,label:'SF+14'};if(h.name==='สี่ตัว')return{pts:12,label:'4ตัว+12'};if(isAAA)return{pts:4,label:'AAA FH+4'};if(h.name==='ฟูลเฮ้าส์')return{pts:2,label:'FH+2'};}
+  else{if(h.name==='ฟลัชหลวง')return{pts:8,label:'RF+8'};if(h.name==='สตรีทฟลัช')return{pts:7,label:'SF+7'};if(h.name==='สี่ตัว')return{pts:6,label:'4ตัว+6'};if(isAAA)return{pts:2,label:'AAA FH+2'};}
   return{pts:0,label:''};
 }
 
