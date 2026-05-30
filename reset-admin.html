@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>รีเซ็ตรหัสแอดมิน</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Kanit',sans-serif;background:#0d1117;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:#161b22;border:1px solid #30363d;border-radius:16px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+h1{font-size:18px;font-weight:900;color:#f0883e;margin-bottom:4px;}
+p{font-size:12px;color:#8b949e;margin-bottom:24px;line-height:1.5;}
+label{display:block;font-size:13px;font-weight:700;color:#c9d1d9;margin-bottom:6px;}
+input{width:100%;padding:12px 14px;background:#0d1117;border:1px solid #30363d;border-radius:10px;color:#e6edf3;font-family:'Kanit',sans-serif;font-size:15px;outline:none;margin-bottom:14px;transition:border-color .15s;}
+input:focus{border-color:#f0883e;}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#f0883e,#c05020);border:none;border-radius:11px;color:#fff;font-family:'Kanit',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 rgba(120,40,0,.5);}
+.btn:active{transform:translateY(2px);}
+.btn:disabled{opacity:.5;cursor:default;transform:none;}
+.msg{border-radius:10px;padding:11px 14px;font-size:13px;font-weight:600;text-align:center;margin-top:12px;display:none;}
+.msg.ok{display:block;background:rgba(30,180,80,.15);border:1px solid rgba(30,180,80,.3);color:#40e880;}
+.msg.err{display:block;background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.3);color:#ff8080;}
+.warn{background:rgba(240,136,62,.1);border:1px solid rgba(240,136,62,.25);border-radius:10px;padding:10px 13px;font-size:12px;color:#f0883e;margin-bottom:20px;line-height:1.5;}
+hr{border:none;border-top:1px solid #21262d;margin:20px 0;}
+.hash-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 11px;font-size:10px;color:#8b949e;word-break:break-all;margin-top:8px;display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔑 รีเซ็ตรหัสแอดมิน</h1>
+  <p>ใช้หน้านี้เพื่อตั้งรหัสแอดมินใหม่<br>⚠️ ลบไฟล์นี้ออกทันทีหลังใช้งาน</p>
+  <div class="warn">⚠️ หน้านี้ไม่มีการยืนยันตัวตน — <b>ลบออกจาก GitHub</b> ทันทีที่รีเซ็ตเสร็จ</div>
+  <label>รหัสผ่านแอดมินใหม่</label>
+  <input type="password" id="p1" placeholder="ใส่รหัสใหม่" maxlength="50">
+  <label>ยืนยันรหัสผ่าน</label>
+  <input type="password" id="p2" placeholder="พิมพ์ซ้ำ" maxlength="50">
+  <button class="btn" id="btn" onclick="doReset()">🔑 บันทึกรหัสใหม่</button>
+  <div class="msg" id="msg"></div>
+
+  <hr>
+  <div style="font-size:12px;color:#8b949e;margin-bottom:8px;font-weight:700;">ตรวจสอบรหัสที่บันทึกอยู่ใน Firestore:</div>
+  <button class="btn" style="background:rgba(30,100,200,.3);border:1px solid rgba(30,100,200,.4);box-shadow:none;font-size:13px;padding:10px" onclick="checkCurrent()">🔍 ดู Hash ปัจจุบัน</button>
+  <div class="hash-box" id="hash-box"></div>
+</div>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+});
+const db=firebase.firestore();
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+function showMsg(type,text){const e=document.getElementById('msg');e.className='msg '+type;e.textContent=text;}
+async function doReset(){
+  const p1=document.getElementById('p1').value;
+  const p2=document.getElementById('p2').value;
+  if(!p1||p1.length<4){showMsg('err','รหัสผ่านต้องมีอย่างน้อย 4 ตัว');return;}
+  if(p1!==p2){showMsg('err','รหัสผ่านไม่ตรงกัน');return;}
+  const btn=document.getElementById('btn');
+  btn.disabled=true;btn.textContent='⏳ กำลังบันทึก...';
+  try{
+    const hash=await sha256(p1);
+    await db.collection('config').doc('admin').set({passwordHash:hash,updatedAt:Date.now()},{merge:true});
+    showMsg('ok','✅ รีเซ็ตรหัสผ่านสำเร็จแล้วครับ!\n\nตอนนี้ไปเข้า admin.html ได้เลย\nแล้วอย่าลืมลบไฟล์นี้ออกด้วยนะครับ');
+    document.getElementById('p1').value='';document.getElementById('p2').value='';
+  }catch(e){showMsg('err','ไม่สำเร็จ: '+(e.message||e));}
+  finally{btn.disabled=false;btn.textContent='🔑 บันทึกรหัสใหม่';}
+}
+async function checkCurrent(){
+  const box=document.getElementById('hash-box');
+  box.style.display='block';box.textContent='กำลังโหลด...';
+  try{
+    const snap=await db.collection('config').doc('admin').get();
+    if(!snap.exists){box.textContent='ยังไม่มีรหัสแอดมินใน Firestore (doc ไม่มี)';}
+    else{
+      const d=snap.data();
+      box.textContent='Hash ปัจจุบัน: '+d.passwordHash+'\nอัปเดตล่าสุด: '+(d.updatedAt?new Date(d.updatedAt).toLocaleString('th'):'ไม่ทราบ');
+    }
+  }catch(e){box.textContent='ดึงข้อมูลไม่ได้: '+(e.message||e);}
+}
+</script>
+</body>
+</html>
