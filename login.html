@@ -2,148 +2,184 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>3 กอง กาญ — เข้าสู่ระบบ</title>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{font-family:'Kanit',sans-serif;min-height:100vh;background:linear-gradient(180deg,#fff8ee 0%,#faf0e0 100%);display:flex;align-items:center;justify-content:center;padding:24px 20px;}
-.container{width:100%;max-width:360px;}
-.logo{text-align:center;margin-bottom:24px;}
-.logo-icon{font-size:52px;margin-bottom:6px;}
-.logo-title{font-size:34px;font-weight:900;letter-spacing:2px;background:linear-gradient(180deg,#8a4000 0%,#c06010 50%,#8a4000 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.logo-sub{font-size:12px;color:#b87840;letter-spacing:1px;margin-top:3px;}
-.card{background:#fff;border-radius:20px;padding:22px 20px;border:1px solid rgba(180,100,20,.15);box-shadow:0 4px 24px rgba(180,100,20,.1);}
-.card-title{font-size:15px;font-weight:800;color:#8a4000;margin-bottom:18px;text-align:center;}
-.lbl{font-size:11px;font-weight:700;color:#b87840;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;}
-.member-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px;}
-.member-btn{background:#faf6f0;border:1.5px solid rgba(180,100,20,.15);border-radius:12px;padding:11px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all .15s;position:relative;}
-.member-btn:active{transform:scale(.96);}
-.member-btn.selected{background:#fff3e0;border-color:#c07010;box-shadow:0 0 0 3px rgba(192,112,16,.12);}
-.member-av{font-size:26px;}
-.member-nm{font-size:12px;font-weight:700;color:#1a0e00;}
-.member-chip{font-size:10px;color:#b87840;}
-.loading-members{text-align:center;padding:20px;color:#b87840;font-size:13px;}
-.divider{display:flex;align-items:center;gap:10px;margin:4px 0 14px;}
-.divider-line{flex:1;height:1px;background:rgba(180,100,20,.12);}
-.divider-text{font-size:11px;color:#c8a060;font-weight:700;}
-.input-wrap{position:relative;margin-bottom:14px;}
-.input-field{width:100%;padding:12px 44px 12px 14px;background:#faf6f0;border:1.5px solid rgba(180,100,20,.2);border-radius:12px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:600;color:#1a0e00;outline:none;letter-spacing:3px;transition:border-color .15s,background .15s;}
-.input-field:focus{border-color:#c07010;background:#fff;}
-.input-field::placeholder{color:rgba(0,0,0,.2);letter-spacing:1px;}
-.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#c8a060;}
-.err{font-size:12px;font-weight:700;color:#c02020;text-align:center;margin-bottom:12px;min-height:18px;}
-.login-btn{width:100%;padding:14px;border:none;border-radius:14px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:900;background:linear-gradient(160deg,#f0a820,#c07010);color:#fff;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 0 #8a4808,0 6px 20px rgba(192,112,16,.25);transition:transform .1s,box-shadow .1s;}
-.login-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8a4808;}
-.login-btn:disabled{background:#e8e0d8;color:#b0a090;box-shadow:none;cursor:not-allowed;}
-.footer{text-align:center;margin-top:14px;font-size:11px;color:#c8a060;}
-.success{display:none;text-align:center;padding:16px 0;}
-.success-av{font-size:52px;margin-bottom:8px;}
-.success-title{font-size:18px;font-weight:800;color:#1a8040;}
-.success-sub{font-size:13px;color:#b87840;margin-top:4px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Kanit',sans-serif;min-height:100vh;min-height:100dvh;background:#120a05;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;position:relative;}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
+.o1{width:480px;height:480px;background:rgba(255,120,10,.28);top:-150px;left:-150px;}
+.o2{width:400px;height:400px;background:rgba(220,70,0,.22);bottom:-120px;right:-120px;}
+.o3{width:240px;height:240px;background:rgba(255,195,40,.14);top:38%;right:6%;}
+.card{position:relative;z-index:1;background:rgba(28,18,10,.6);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,180,80,.22);border-radius:26px;width:100%;max-width:390px;box-shadow:0 24px 64px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.14);overflow:hidden;}
+.card-top{background:linear-gradient(135deg,rgba(255,140,10,.28),rgba(190,60,0,.22));border-bottom:1px solid rgba(255,180,80,.18);padding:28px 28px 20px;text-align:center;}
+.top-badge{width:70px;height:70px;border-radius:20px;margin:0 auto 13px;background:linear-gradient(135deg,#ff9a2e,#e0590a);display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 8px 24px rgba(255,120,0,.45),inset 0 2px 0 rgba(255,255,255,.3);}
+.top-title{font-size:24px;font-weight:900;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.4);}
+.top-sub{font-size:14px;color:rgba(255,225,190,.85);margin-top:4px;font-weight:500;}
+.card-body{padding:24px 24px 28px;}
+.method-label{font-size:12px;font-weight:800;color:rgba(255,225,190,.55);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;}
+.btn-google{width:100%;padding:14px 20px;background:#fff;border:none;border-radius:14px;color:#1f1f1f;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 4px 0 rgba(0,0,0,.15),0 8px 20px rgba(0,0,0,.25);transition:opacity .12s,transform .1s;}
+.btn-google:active{opacity:.88;transform:translateY(2px);}
+.btn-google:disabled{opacity:.5;cursor:default;transform:none;}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0;font-size:12px;color:rgba(255,225,190,.4);font-weight:700;letter-spacing:.5px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,180,80,.18);}
+.field{margin-bottom:14px;}
+label{display:block;font-size:14px;font-weight:700;color:#ffd9a8;margin-bottom:7px;}
+.iw{position:relative;}
+input[type="text"],input[type="password"]{width:100%;padding:14px 16px;background:rgba(12,7,3,.62);border:1.5px solid rgba(255,180,80,.28);border-radius:13px;color:#fff;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;outline:none;-webkit-appearance:none;transition:border-color .15s,box-shadow .15s;}
+input::placeholder{color:rgba(255,235,210,.4);}
+input:focus{border-color:#ff9a2e;box-shadow:0 0 0 3px rgba(255,140,20,.16);}
+input[type="password"]{padding-right:48px;}
+.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,180,80,.1);border:none;border-radius:8px;color:rgba(255,220,180,.8);font-size:17px;cursor:pointer;padding:5px 8px;line-height:1;}
+.btn-main{width:100%;padding:15px;background:linear-gradient(135deg,#ff9a2e,#e0560a);border:none;border-radius:14px;color:#fff;font-family:'Kanit',sans-serif;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:.3px;box-shadow:0 5px 0 rgba(150,45,0,.6),0 10px 28px rgba(255,110,0,.35);transition:opacity .12s,transform .1s;margin-top:4px;}
+.btn-main:active{opacity:.9;transform:translateY(2px);}
+.btn-main:disabled{opacity:.5;cursor:default;transform:none;}
+.err{background:rgba(230,50,50,.2);border:1px solid rgba(230,50,50,.4);border-radius:11px;padding:10px 14px;color:#ffacac;font-size:12px;font-weight:600;text-align:center;margin-top:10px;display:none;}
+.err.show{display:block;}
+.links{display:flex;justify-content:center;margin-top:20px;font-size:14px;color:rgba(255,225,190,.5);}
+.links a{color:#ffae4d;text-decoration:none;font-weight:700;}
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;z-index:100;background:rgba(18,10,5,.85);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.loading-overlay.show{display:flex;}
+.spin{width:38px;height:38px;border:4px solid rgba(255,180,80,.2);border-top-color:#ff9a2e;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(180,100,20,.2);border-top-color:#c07010;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">
-    <div class="logo-icon">🃏</div>
-    <div class="logo-title">3 กอง กาญ</div>
-    <div class="logo-sub">CHINESE POKER • สไตล์ไทย</div>
+<div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+
+<div class="card">
+  <div class="card-top">
+    <div class="top-badge">🃏</div>
+    <div class="top-title">3 กอง กาญ</div>
+    <div class="top-sub">เข้าสู่ระบบ</div>
   </div>
-  <div class="card">
-    <div class="card-title">🔐 เข้าสู่ระบบ</div>
-    <div class="lbl">เลือกชื่อของคุณ</div>
-    <div id="member-grid" class="member-grid">
-      <div class="loading-members" style="grid-column:1/-1"><span class="spinner"></span>กำลังโหลดสมาชิก...</div>
+  <div class="card-body">
+
+    <!-- GOOGLE -->
+    <div class="method-label">เข้าสู่ระบบด้วย Google</div>
+    <button class="btn-google" id="btn-google" onclick="signInGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <span id="btn-google-text">เข้าสู่ระบบด้วย Google</span>
+    </button>
+    <div class="err" id="err-google"></div>
+
+    <div class="divider">หรือเข้าด้วยชื่อ/รหัสผ่าน</div>
+
+    <!-- MANUAL -->
+    <div class="method-label">ชื่อผู้ใช้ / รหัสผ่าน</div>
+    <div class="field">
+      <label>👤 ชื่อผู้ใช้</label>
+      <input type="text" id="inp-name" placeholder="ชื่อของคุณ" maxlength="30" autocomplete="username">
     </div>
-    <div class="divider"><div class="divider-line"></div><div class="divider-text">ใส่รหัสผ่าน</div><div class="divider-line"></div></div>
-    <div class="input-wrap">
-      <div class="lbl">รหัสผ่าน</div>
-      <input type="password" id="pwd" class="input-field" placeholder="••••••" maxlength="20" oninput="clearErr()" onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="eye-btn" onclick="togglePwd()" id="eye-btn">👁</button>
+    <div class="field">
+      <label>🔒 รหัสผ่าน</label>
+      <div class="iw">
+        <input type="password" id="inp-pass" placeholder="••••••••" maxlength="50" autocomplete="current-password">
+        <button class="eye" onclick="togglePw()" tabindex="-1">👁️</button>
+      </div>
     </div>
-    <div class="err" id="err-msg"></div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()" disabled>เข้าเล่น →</button>
-    <div class="success" id="success">
-      <div class="success-av" id="s-av">🦊</div>
-      <div class="success-title">ยินดีต้อนรับ!</div>
-      <div class="success-sub" id="s-sub">กำลังเข้าสู่ห้องเกม...</div>
-      <a id="profile-link" href="#" style="display:inline-block;margin-top:10px;font-size:12px;color:#b87840;text-decoration:none;font-weight:700;">✏️ แก้ไขโปรไฟล์ก่อน</a>
-    </div>
+    <button class="btn-main" id="btn-login" onclick="doManualLogin()">เข้าสู่ระบบ</button>
+    <div class="err" id="err-manual"></div>
+
+    <div class="links"><a href="register.html">ยังไม่มีบัญชี? สมัครสมาชิก →</a></div>
   </div>
-  <div class="footer">Admin เป็นคนสร้างบัญชีและรหัสผ่านให้ครับ</div>
 </div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="spin"></div>
+  <div style="color:#ffd9a8;font-size:14px;font-weight:700">กำลังเข้าสู่ระบบ...</div>
+</div>
+
 <script>
-firebase.initializeApp({apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",authDomain:"poker-kan.firebaseapp.com",projectId:"poker-kan",storageBucket:"poker-kan.firebasestorage.app",messagingSenderId:"267226971967",appId:"1:267226971967:web:3ae1891c63194a97715d8a"});
+firebase.initializeApp({
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+});
 const db=firebase.firestore();
-let members=[];
-let selectedMember=null;
-async function loadMembers(){
+const auth=firebase.auth();
+
+// ถ้า Google user login อยู่แล้ว → เข้าเลย
+auth.onAuthStateChanged(async user=>{
+  if(!user)return;
+  document.getElementById('loading').classList.add('show');
   try{
-    const snap=await db.collection('admin').doc('data').get();
-    if(!snap.exists){showNoMembers();return;}
-    const data=snap.data();
-    members=(data.members||[]).filter(m=>m.name&&(m.password||m.pw));
-    if(!members.length){showNoMembers();return;}
-    renderMembers();
-  }catch(e){
-    document.getElementById('member-grid').innerHTML=`<div class="loading-members" style="grid-column:1/-1;color:#c02020">⚠️ ไม่สามารถโหลดข้อมูลได้<br><small>${e.message}</small></div>`;
-  }
-}
-function showNoMembers(){document.getElementById('member-grid').innerHTML=`<div class="loading-members" style="grid-column:1/-1;color:#b87840">ยังไม่มีสมาชิก<br><small>Admin ต้องสร้างสมาชิกก่อนครับ</small></div>`;}
-function renderMembers(){
-  const grid=document.getElementById('member-grid');
-  grid.innerHTML=members.map((m,i)=>{
-    const chip=m.wallet||m.chips||0;
-    const chipStr=(chip>=0?'+':'')+chip;
-    return`<div class="member-btn" id="mb-${i}" onclick="selectMember(${i})"><div class="member-av">${m.avatar||'🎴'}</div><div class="member-nm">${m.name}</div><div class="member-chip">🪙 ${chipStr}</div></div>`;
-  }).join('');
-}
-function selectMember(i){
-  document.querySelectorAll('.member-btn').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('mb-'+i).classList.add('selected');
-  selectedMember=members[i];
-  document.getElementById('login-btn').disabled=false;
-  document.getElementById('pwd').focus();
-  clearErr();
-}
-function togglePwd(){const f=document.getElementById('pwd'),e=document.getElementById('eye-btn');f.type=f.type==='password'?'text':'password';e.textContent=f.type==='password'?'👁':'🙈';}
-function clearErr(){document.getElementById('err-msg').textContent='';}
-function doLogin(){
-  if(!selectedMember){document.getElementById('err-msg').textContent='กรุณาเลือกชื่อของคุณก่อนครับ';return;}
-  const pwd=document.getElementById('pwd').value.trim();
-  if(!pwd){document.getElementById('err-msg').textContent='กรุณากรอกรหัสผ่านครับ';return;}
-  if(pwd!==(selectedMember.password||selectedMember.pw)){
-    document.getElementById('err-msg').textContent='❌ รหัสผ่านไม่ถูกต้อง ลองใหม่ครับ';
-    document.getElementById('pwd').value='';
-    document.getElementById('pwd').focus();
-    return;
-  }
-  document.getElementById('login-btn').style.display='none';
-  document.getElementById('pwd').closest('.input-wrap').style.display='none';
-  document.querySelector('.divider').style.display='none';
-  document.getElementById('err-msg').style.display='none';
-  const s=document.getElementById('success');
-  s.style.display='block';
-  document.getElementById('s-av').textContent=selectedMember.avatar||'🎴';
-  document.getElementById('s-sub').textContent=selectedMember.name+' — กำลังเข้าสู่ห้องเกม...';
-  sessionStorage.setItem('player',JSON.stringify({id:selectedMember.id||selectedMember.name,name:selectedMember.name,avatar:selectedMember.avatar||'🎴'}));
-  document.getElementById('profile-link').href='profile.html?name='+encodeURIComponent(selectedMember.name);
-  setTimeout(()=>{
-    const p=new URLSearchParams(location.search);
-    const roomCode=p.get('room')||'';
-    if(roomCode){
-      location.href='game-room.html?name='+encodeURIComponent(selectedMember.name)+'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴')+'&room='+encodeURIComponent(roomCode);
-    } else {
-      location.href='lobby.html?name='+encodeURIComponent(selectedMember.name)+'&avatar='+encodeURIComponent(selectedMember.avatar||'🎴');
+    const snap=await db.collection('members').doc(user.uid).get();
+    if(snap.exists) redirectLobby(snap.data(),user.uid);
+    else{
+      // มี Google auth แต่ไม่มี member doc → ไปสมัครก่อน
+      await auth.signOut();
+      document.getElementById('loading').classList.remove('show');
     }
-  },1200);
+  }catch(e){document.getElementById('loading').classList.remove('show');}
+});
+
+function togglePw(){const i=document.getElementById('inp-pass');i.type=i.type==='password'?'text':'password';}
+function showErr(id,m){const e=document.getElementById('err-'+id);e.textContent=m;e.classList.add('show');}
+function clearErr(id){document.getElementById('err-'+id).classList.remove('show');}
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+
+document.getElementById('inp-name').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('inp-pass').focus();});
+document.getElementById('inp-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doManualLogin();});
+
+async function signInGoogle(){
+  clearErr('google');
+  const btn=document.getElementById('btn-google');
+  btn.disabled=true;document.getElementById('btn-google-text').textContent='กำลังเชื่อมต่อ...';
+  try{
+    const r=await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    const snap=await db.collection('members').doc(r.user.uid).get();
+    if(!snap.exists){
+      // ยังไม่ได้สมัคร → ไปหน้าสมัคร
+      await auth.signOut();
+      window.location.href='register.html';
+    }else{
+      redirectLobby(snap.data(),r.user.uid);
+    }
+  }catch(e){
+    if(e.code==='auth/popup-blocked'){await auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());}
+    else if(e.code!=='auth/popup-closed-by-user') showErr('google','เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่');
+    btn.disabled=false;document.getElementById('btn-google-text').textContent='เข้าสู่ระบบด้วย Google';
+  }
 }
-loadMembers();
+
+async function doManualLogin(){
+  clearErr('manual');
+  const name=document.getElementById('inp-name').value.trim();
+  const pass=document.getElementById('inp-pass').value;
+  if(!name){showErr('manual','กรุณาใส่ชื่อผู้ใช้ครับ');return;}
+  if(!pass){showErr('manual','กรุณาใส่รหัสผ่านครับ');return;}
+  const btn=document.getElementById('btn-login');
+  btn.disabled=true;btn.textContent='⏳ กำลังตรวจสอบ...';
+  try{
+    const hash=await sha256(pass);
+    const docId='m_'+name.toLowerCase();
+    const snap=await db.collection('members').doc(docId).get();
+    if(!snap.exists){showErr('manual','ไม่พบชื่อผู้ใช้นี้ครับ');return;}
+    const d=snap.data();
+    if(d.active===false){showErr('manual','บัญชีนี้ถูกระงับ กรุณาติดต่อแอดมิน');return;}
+    if(d.passwordHash!==hash){showErr('manual','รหัสผ่านไม่ถูกต้องครับ');return;}
+    redirectLobby(d,docId);
+  }catch(e){showErr('manual','เกิดข้อผิดพลาด กรุณาลองใหม่');}
+  finally{btn.disabled=false;btn.textContent='เข้าสู่ระบบ';}
+}
+
+function redirectLobby(d,memberId){
+  sessionStorage.setItem('gr_myName',d.name);
+  sessionStorage.setItem('gr_avatar',d.avatar||'🦊');
+  sessionStorage.setItem('gr_chips',d.chips||0);
+  if(memberId) sessionStorage.setItem('gr_memberId',memberId);
+  window.location.href=`lobby.html?name=${encodeURIComponent(d.name)}&avatar=${encodeURIComponent(d.avatar||'🦊')}`;
+}
 </script>
 </body>
 </html>
