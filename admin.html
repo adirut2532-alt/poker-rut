@@ -74,6 +74,7 @@ body{font-family:'Kanit',sans-serif;background:var(--bg);min-height:100vh;min-he
 .btn:active{opacity:.75;}
 .btn-ok{background:rgba(20,180,80,.2);color:#40e880;border:1px solid rgba(20,180,80,.35);}
 .btn-warn{background:rgba(255,165,0,.2);color:#ffca6a;border:1px solid rgba(255,165,0,.3);}
+.btn-info{background:rgba(60,130,230,.2);color:#7fb3ff;border:1px solid rgba(60,130,230,.35);}
 .btn-danger{background:rgba(220,50,50,.2);color:#ff8080;border:1px solid rgba(220,50,50,.3);}
 .btn-primary{background:linear-gradient(135deg,var(--orange),#d45200);color:#fff;box-shadow:0 3px 0 rgba(140,40,0,.5);}
 .btn-full{width:100%;padding:13px;font-size:15px;}
@@ -233,15 +234,36 @@ input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,140,20,.16)
     <div class="modal-info" id="chips-modal-info"></div>
     <div style="margin-bottom:10px">
       <label>ชิบปัจจุบัน: <span id="chips-current" style="color:var(--orange)"></span></label>
-      <input type="number" id="chips-new" placeholder="ใส่จำนวนชิบใหม่" min="0">
+      <input type="number" id="chips-amt" placeholder="จำนวนชิบ" min="0" step="0.01">
     </div>
-    <div style="font-size:12px;color:var(--gold2);margin-bottom:4px">
-      หมายเหตุ: ระบุจำนวนชิบทั้งหมด (ไม่ใช่เพิ่ม/ลบ)
+    <div style="margin-bottom:10px">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <input type="text" id="chips-note" placeholder="เช่น เติมเงินสด / ถอนกำไร" maxlength="60">
+    </div>
+    <div id="transfer-row" style="margin-bottom:10px;display:none">
+      <label>โอนให้</label>
+      <select id="chips-target2" style="width:100%;padding:11px;border-radius:9px;background:#010409;border:1px solid #30363d;color:#e6edf3;font-family:'Kanit',sans-serif;font-size:14px"></select>
+      <button class="btn btn-info" style="width:100%;margin-top:8px" onclick="doChipOp('transfer')">🔁 ยืนยันโอน (หักจากคนนี้ → ให้คนที่เลือก)</button>
     </div>
     <div class="err" id="chips-err"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-ok" style="flex:1" onclick="doChipOp('deposit')">➕ เติม (เบิก)</button>
+      <button class="btn btn-warn" style="flex:1" onclick="doChipOp('withdraw')">➖ ถอน</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-info" style="flex:1" onclick="toggleTransfer()" id="btn-transfer-toggle">🔁 โอนให้คนอื่น</button>
+      <button class="btn btn-danger" style="flex:1" onclick="closeModal('chips-modal')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="history-modal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-title">📋 ประวัติชิบ</div>
+    <div class="modal-info" id="history-info"></div>
+    <div id="history-body" style="max-height:55vh;overflow-y:auto;margin:8px 0"></div>
     <div class="modal-btns">
-      <button class="btn btn-danger" style="flex:1" onclick="closeModal('chips-modal')">ยกเลิก</button>
-      <button class="btn btn-primary" style="flex:2" onclick="saveChips()">💰 บันทึกชิบ</button>
+      <button class="btn btn-danger" style="flex:1" onclick="closeModal('history-modal')">ปิด</button>
     </div>
   </div>
 </div>
@@ -261,6 +283,8 @@ firebase.initializeApp({
 const db=firebase.firestore();
 let chipsTargetId=null;
 let toastTmr=null;
+let allMembers=[];           // แคชรายชื่อสมาชิกทั้งหมด (ใช้ตอนโอนชิบ + ดูประวัติ)
+const fmt=n=>{const v=Math.round((Number(n)||0)*100)/100;return Number.isInteger(v)?String(v):v.toFixed(2);}; // ตัดเศษเหลือ 2 ตำแหน่ง
 
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 function toast(m){clearTimeout(toastTmr);const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');toastTmr=setTimeout(()=>e.classList.remove('show'),2600);}
@@ -400,6 +424,7 @@ async function loadMembers(){
   try{
     const snap=await db.collection('members').orderBy('createdAt','desc').get();
     const all=[];snap.forEach(d=>all.push({id:d.id,...d.data()}));
+    allMembers=all;
     const pending=all.filter(m=>!m.approved);
     const active=all.filter(m=>m.approved&&m.active!==false&&m.chips>0);
     document.getElementById('st-total').textContent=all.length;
@@ -424,7 +449,7 @@ function memberCardHTML(m,isPending){
   const statusBadge=isPending
     ?'<span class="badge b-pending">⏳ รออนุมัติ</span>'
     :on?'<span class="badge b-on">✅ ใช้งานได้</span>':'<span class="badge b-off">🔒 ระงับ</span>';
-  const chipTag=`<span class="chip-tag">💰 ${m.chips||0} ชิบ</span>`;
+  const chipTag=`<span class="chip-tag">💰 ${fmt(m.chips||0)} ชิบ</span>`;
   const safeId=m.id.replace(/'/g,"\\'");
   const safeName=(m.name||m.id).replace(/'/g,"\\'");
   const actions=isPending
@@ -433,6 +458,7 @@ function memberCardHTML(m,isPending){
        <button class="btn btn-danger" onclick="deleteMember('${safeId}','${safeName}')">ลบ</button>`
     :`<button class="btn ${on?'btn-danger':'btn-ok'}" onclick="toggleMember('${safeId}',${on})">${on?'ระงับ':'เปิด'}</button>
       <button class="btn btn-warn" onclick="openChipsModal('${safeId}','${safeName}',${m.chips||0})">💰 ชิบ</button>
+      <button class="btn btn-info" onclick="openHistory('${safeId}','${safeName}')">📋 ประวัติ</button>
       <button class="btn btn-danger" onclick="deleteMember('${safeId}','${safeName}')">ลบ</button>`;
   return`<div class="m-card${isPending?' pending':''}">
     <div class="m-av">${m.avatar||'🎴'}</div>
@@ -462,22 +488,113 @@ async function deleteMember(id,name){
   catch(e){alert('ลบไม่ได้: '+(e.message||e));}
 }
 
+let chipsTargetName='';
 function openChipsModal(id,name,current){
-  chipsTargetId=id;
+  chipsTargetId=id; chipsTargetName=name;
   document.getElementById('chips-modal-info').textContent='👤 '+name;
-  document.getElementById('chips-current').textContent=current+' ชิบ';
-  document.getElementById('chips-new').value=current;
+  document.getElementById('chips-current').textContent=fmt(current)+' ชิบ';
+  document.getElementById('chips-amt').value='';
+  document.getElementById('chips-note').value='';
+  document.getElementById('transfer-row').style.display='none';
+  document.getElementById('btn-transfer-toggle').textContent='🔁 โอนให้คนอื่น';
+  const sel=document.getElementById('chips-target2');
+  sel.innerHTML=allMembers.filter(m=>m.id!==id&&m.approved).map(m=>`<option value="${m.id}">${m.name||m.id}</option>`).join('')||'<option value="">— ไม่มีสมาชิกอื่น —</option>';
   clearErr('chips-err');
   document.getElementById('chips-modal').classList.add('open');
 }
-async function saveChips(){
+function toggleTransfer(){
+  const row=document.getElementById('transfer-row');
+  const show=row.style.display==='none';
+  row.style.display=show?'block':'none';
+  document.getElementById('btn-transfer-toggle').textContent=show?'⬆ ซ่อนการโอน':'🔁 โอนให้คนอื่น';
+}
+// txn: {t,ty,amt,bal,note,other}  ty = deposit|withdraw|transfer_in|transfer_out
+async function doChipOp(op){
   clearErr('chips-err');
-  const val=parseInt(document.getElementById('chips-new').value)||0;
-  if(val<0){showErr('chips-err','ชิบต้องไม่ติดลบครับ');return;}
+  const amt=Math.round((parseFloat(document.getElementById('chips-amt').value)||0)*100)/100;
+  const note=(document.getElementById('chips-note').value||'').trim();
+  if(amt<=0){showErr('chips-err','ใส่จำนวนชิบให้ถูกต้องครับ');return;}
   try{
-    await db.collection('members').doc(chipsTargetId).update({chips:val,approved:true});
-    closeModal('chips-modal');toast('💰 บันทึกชิบแล้ว: '+val+' ชิบ');loadMembers();
+    const meSnap=await db.collection('members').doc(chipsTargetId).get();
+    const cur=Math.round(((meSnap.data()||{}).chips||0)*100)/100;
+    const now=Date.now();
+    if(op==='deposit'){
+      const nb=Math.round((cur+amt)*100)/100;
+      await db.collection('members').doc(chipsTargetId).update({chips:nb,approved:true,
+        txns:firebase.firestore.FieldValue.arrayUnion({t:now,ty:'deposit',amt,bal:nb,note})});
+      toast('➕ เติม '+fmt(amt)+' ชิบ → '+chipsTargetName);
+    } else if(op==='withdraw'){
+      if(amt>cur){showErr('chips-err','ถอนเกินยอด (เหลือ '+fmt(cur)+')');return;}
+      const nb=Math.round((cur-amt)*100)/100;
+      await db.collection('members').doc(chipsTargetId).update({chips:nb,
+        txns:firebase.firestore.FieldValue.arrayUnion({t:now,ty:'withdraw',amt,bal:nb,note})});
+      toast('➖ ถอน '+fmt(amt)+' ชิบ จาก '+chipsTargetName);
+    } else if(op==='transfer'){
+      const toId=document.getElementById('chips-target2').value;
+      if(!toId){showErr('chips-err','เลือกผู้รับก่อนครับ');return;}
+      if(amt>cur){showErr('chips-err','โอนเกินยอด (เหลือ '+fmt(cur)+')');return;}
+      const toSnap=await db.collection('members').doc(toId).get();
+      const toData=toSnap.data()||{}; const toName=toData.name||toId;
+      const toCur=Math.round((toData.chips||0)*100)/100;
+      const fromNb=Math.round((cur-amt)*100)/100, toNb=Math.round((toCur+amt)*100)/100;
+      const batch=db.batch();
+      batch.update(db.collection('members').doc(chipsTargetId),{chips:fromNb,
+        txns:firebase.firestore.FieldValue.arrayUnion({t:now,ty:'transfer_out',amt,bal:fromNb,note,other:toName})});
+      batch.update(db.collection('members').doc(toId),{chips:toNb,approved:true,
+        txns:firebase.firestore.FieldValue.arrayUnion({t:now,ty:'transfer_in',amt,bal:toNb,note,other:chipsTargetName})});
+      await batch.commit();
+      toast('🔁 โอน '+fmt(amt)+' ชิบ → '+toName);
+    }
+    closeModal('chips-modal'); loadMembers();
   }catch(e){showErr('chips-err','ไม่สำเร็จ: '+(e.message||e));}
+}
+
+const TY_LABEL={deposit:'➕ เติม',withdraw:'➖ ถอน',transfer_in:'🔁 รับโอน',transfer_out:'🔁 โอนออก'};
+async function openHistory(id,name){
+  document.getElementById('history-info').textContent='👤 '+name;
+  document.getElementById('history-body').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  document.getElementById('history-modal').classList.add('open');
+  try{
+    const snap=await db.collection('members').doc(id).get();
+    const txns=((snap.data()||{}).txns||[]).slice().sort((a,b)=>b.t-a.t);
+    if(!txns.length){document.getElementById('history-body').innerHTML='<div class="empty">ยังไม่มีประวัติธุรกรรม</div>';return;}
+    // จัดกลุ่มตามวัน
+    const days={};
+    txns.forEach(x=>{
+      const d=new Date(x.t).toLocaleDateString('th',{day:'numeric',month:'short',year:'2-digit'});
+      (days[d]=days[d]||[]).push(x);
+    });
+    let html='';
+    Object.keys(days).forEach(d=>{
+      const list=days[d];
+      let dayIn=0,dayOut=0;
+      list.forEach(x=>{ if(x.ty==='deposit'||x.ty==='transfer_in')dayIn+=x.amt; else dayOut+=x.amt; });
+      const net=Math.round((dayIn-dayOut)*100)/100;
+      html+=`<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #30363d;padding-bottom:5px;margin-bottom:6px">
+          <span style="font-weight:800;color:var(--orange)">${d}</span>
+          <span style="font-size:12px;font-weight:800;color:${net>=0?'#40e880':'#ff8080'}">รวมวันนี้ ${net>=0?'+':''}${fmt(net)}</span>
+        </div>`;
+      list.forEach(x=>{
+        const inc=x.ty==='deposit'||x.ty==='transfer_in';
+        const time=new Date(x.t).toLocaleTimeString('th',{hour:'2-digit',minute:'2-digit'});
+        const other=x.other?` • ${x.ty==='transfer_in'?'จาก':'ให้'} ${x.other}`:'';
+        html+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;font-size:13px">
+          <div style="flex:1">
+            <span style="color:#c9d1d9">${TY_LABEL[x.ty]||x.ty}</span>
+            <span style="color:#8b949e;font-size:11px">${time}${other}</span>
+            ${x.note?`<div style="color:#8b949e;font-size:11px">📝 ${x.note}</div>`:''}
+          </div>
+          <div style="text-align:right;white-space:nowrap">
+            <div style="font-weight:800;color:${inc?'#40e880':'#ff8080'}">${inc?'+':'-'}${fmt(x.amt)}</div>
+            <div style="font-size:10px;color:#8b949e">เหลือ ${fmt(x.bal)}</div>
+          </div>
+        </div>`;
+      });
+      html+='</div>';
+    });
+    document.getElementById('history-body').innerHTML=html;
+  }catch(e){document.getElementById('history-body').innerHTML='<div style="color:#ff8080;padding:10px">โหลดไม่ได้: '+(e.message||e)+'</div>';}
 }
 
 async function changeAdminPass(){
