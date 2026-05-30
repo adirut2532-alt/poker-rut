@@ -103,12 +103,14 @@ function loadMe(){
   refreshChips();
 }
 function updateChipDisplay(){const e=document.getElementById('hdr-chips');if(e)e.textContent='🪙 '+myChips+' ชิบ';}
+let chipUnsub=null;
 async function refreshChips(){
   if(!myMemberId)return;
-  try{
-    const snap=await db.collection('members').doc(myMemberId).get();
+  // ฟังแบบ real-time — admin เติมชิบปุ๊บ เห็นปั๊บ
+  if(chipUnsub)return;
+  chipUnsub=db.collection('members').doc(myMemberId).onSnapshot(snap=>{
     if(snap.exists){myChips=snap.data().chips||0;sessionStorage.setItem('gr_chips',myChips);updateChipDisplay();renderRooms();}
-  }catch(e){}
+  },()=>{});
 }
 function loadRooms(){
   if(unsub)unsub();

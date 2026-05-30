@@ -161,15 +161,16 @@ html,body{
   padding-bottom:calc(34px + env(safe-area-inset-bottom,16px));
   position:relative;z-index:30;
 }
-.my-info{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.my-info{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 .my-av{
-  width:34px;height:34px;border-radius:50%;
-  background:linear-gradient(135deg,rgba(255,220,80,.3),rgba(200,140,20,.2));
-  border:2px solid rgba(255,220,80,.5);
-  display:flex;align-items:center;justify-content:center;font-size:20px;
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(255,220,80,.35),rgba(200,140,20,.25));
+  border:2.5px solid rgba(255,220,80,.65);
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  box-shadow:0 2px 10px rgba(255,200,60,.25);flex-shrink:0;
 }
-.my-nm{font-size:14px;font-weight:800;color:#f0c040;flex:1;}
-.my-chip{font-size:11px;color:#c8a860;}
+.my-nm{font-size:17px;font-weight:900;color:#f0c040;flex:1;}
+.my-chip{font-size:13px;color:#ffd86a;font-weight:700;}
 .my-left{font-size:12px;color:#c8a860;font-weight:700;margin-left:auto;}
 
 .arr-row{display:flex;align-items:stretch;gap:5px;margin-bottom:4px;}
@@ -316,6 +317,20 @@ html,body{
   transition:opacity .3s,transform .3s cubic-bezier(.175,.885,.32,1.275);
 }
 .talu-banner.shown{opacity:1;transform:scale(1);}
+.darby-banner{
+  background:linear-gradient(135deg,rgba(255,180,30,.28),rgba(255,90,0,.22));
+  border:2.5px solid #ffb320;border-radius:14px;padding:14px 16px;margin:0 0 12px;
+  font-size:17px;font-weight:900;color:#ffd24a;text-align:center;
+  box-shadow:0 0 28px rgba(255,170,30,.4),inset 0 1px 0 rgba(255,255,255,.2);
+  animation:darbyPulse 1.2s ease-in-out infinite;
+  text-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+@keyframes darbyPulse{0%,100%{transform:scale(1);box-shadow:0 0 28px rgba(255,170,30,.4),inset 0 1px 0 rgba(255,255,255,.2);}50%{transform:scale(1.025);box-shadow:0 0 40px rgba(255,190,40,.65),inset 0 1px 0 rgba(255,255,255,.3);}}
+.lowchip-warn{
+  background:rgba(220,50,50,.18);border:1.5px solid rgba(220,50,50,.45);
+  border-radius:10px;padding:8px 12px;margin-bottom:8px;
+  font-size:12px;font-weight:700;color:#ff9a9a;text-align:center;line-height:1.4;
+}
 
 .score-flash{text-align:center;padding:14px 0 6px;opacity:0;transform:scale(.7);transition:opacity .4s,transform .4s cubic-bezier(.175,.885,.32,1.275);}
 .score-flash.shown{opacity:1;transform:scale(1);}
@@ -694,9 +709,8 @@ function evalHand(cards){
   const fl=n===5&&suits.every(s=>s===suits[0]);
   const isW=n===5&&vals[0]===14&&vals[1]===5&&vals[2]===4&&vals[3]===3&&vals[4]===2;
   const isSt=n===5&&((vals[0]-vals[4]===4&&new Set(vals).size===5)||isW);
-  const sf3=n===3&&suits.every(s=>s===suits[0])&&vals[0]-vals[2]===2&&new Set(vals).size===3;
   let rank=0,name='ไฮการ์ด';
-  if(n===3){if(sf3){rank=6;name='สตรีทฟลัช';}else if(cnt[0]===3){rank=5;name='ตอง';}else if(cnt[0]===2){rank=2;name='คู่';}else rank=1;}
+  if(n===3){if(cnt[0]===3){rank=5;name='ตอง';}else if(cnt[0]===2){rank=2;name='คู่';}else rank=1;}  // 3 ใบหน้า: ไม่นับสตรีท/ฟลัช
   else{
     if(fl&&isSt){const bw=vals[0]===14&&vals[4]===10;rank=bw?9:8;name=bw?'ฟลัชหลวง':'สตรีทฟลัช';}
     else if(cnt[0]===4){rank=7;name='สี่ตัว';}
@@ -786,7 +800,13 @@ function calcScores(players,hands){
     else if(bw===3){ps*=2;qs*=2;b.taluCount++;b._tw++;b._pb[i]={talu:true};a._pb[j]={talu:true};}
     a.roundScore+=ps;b.roundScore+=qs;
   }
-  sc.forEach(s=>{if(n===4&&s._tw===n-1){s.isDarby=true;s.roundScore*=4;sc.forEach(o=>{if(o.id!==s.id)o.roundScore*=4;});}});
+  // ── ดาร์บี้: ชนะครบ 3 กอง (ทะลุ) ทุกคู่ต่อสู้ที่ไม่ฟาว (ต้องมีคู่แข่งอย่างน้อย 2 คน) → คะแนนทุกคนคูณ 4 ──
+  sc.forEach(s=>{
+    if(h(s).foul)return;
+    const opps=sc.filter(o=>o.id!==s.id&&!h(o).foul);
+    if(opps.length>=2&&s._tw===opps.length)s.isDarby=true;
+  });
+  if(sc.some(s=>s.isDarby)){ sc.forEach(s=>{s.roundScore*=4;}); }
   // ── FOUL (ฟาว) — คิดแบบจับคู่ zero-sum: คนฟาวจ่าย 6 ให้คู่ต่อสู้ที่ "ไม่ฟาว" แต่ละคน
   sc.forEach(s=>{if(h(s).foul)s.bonusLabel='⚠️ ฟาว';});
   for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
@@ -826,6 +846,7 @@ function buildMatchups(players,hands){
 // ── STATE ──
 let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null;
 let myMemberId=null;
+let myChips=0; // ยอดชิบจริงจาก members collection
 let hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
 let roomData={};
 let timerIds=[];
@@ -845,6 +866,8 @@ window.addEventListener('load',async()=>{
   if(!myId)   myId=sessionStorage.getItem('gr_myId');
   if(!myName) myName=sessionStorage.getItem('gr_myName')||'';
   myMemberId=sessionStorage.getItem('gr_memberId')||'';
+  myChips=parseInt(sessionStorage.getItem('gr_chips')||'0')||0;
+  if(myMemberId){ db.collection('members').doc(myMemberId).get().then(s=>{if(s.exists){myChips=s.data().chips||0;sessionStorage.setItem('gr_chips',myChips);}}).catch(()=>{}); }
 
   if(!roomId||!myName){location.href='lobby.html';return;}
 
@@ -1169,6 +1192,8 @@ function renderGame(){
 
   const allPlaced=hand.unplaced.length===0;
   const isValid=allPlaced&&validArr(hand.front,hand.mid,hand.back);
+  const needChip=35*(roomData.rate||1);
+  const lowChipWarn=(myMemberId&&myChips<needChip)?`<div class="lowchip-warn">🪙 ชิบเหลือ ${myChips} • ขั้นต่ำห้องนี้ ${needChip} — เติมชิบก่อนหมดนะครับ (จบรอบนี้แล้วต้องเติมก่อนเล่นต่อ)</div>`:'';
 
   // ถ้า hand.done=true แต่ไม่มีไพ่ในรอบนี้ → reset
   const myCardsThisRound=(roomData.deals||{})[myName]||[];
@@ -1219,9 +1244,13 @@ function renderGame(){
       <div class="my-hand">
         <div class="my-info">
           <div class="my-av">${myAvatar||'🦊'}</div>
-          <div><div class="my-nm">${myName}</div><div class="my-chip">🪙 ${chipVal>=0?'+':''}${chipVal}</div></div>
+          <div style="flex:1">
+            <div class="my-nm">${myName}</div>
+            <div class="my-chip">${chipVal>=0?'📈 กำไร +':'📉 ขาดทุน '}${chipVal} ชิบ • เล่นไป ${roomData.round||1} รอบ</div>
+          </div>
           <div class="my-left">เหลือ ${hand.unplaced.length} ใบ</div>
         </div>
+        ${lowChipWarn}
         ${dz('front',hand.front,3,'หน้า')}
         ${dz('mid',hand.mid,5,'กลาง')}
         ${dz('back',hand.back,5,'หลัง')}
@@ -1445,6 +1474,7 @@ function showResults(){
     newScores[p.id]=old+(scores.find(s=>s.id===p.id)?.roundScore||0);
   });
   db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
+  roomData.scores=newScores; // อัปเดต local ทันที เพื่อให้คะแนนสะสมแสดงรวมรอบนี้เลย (ไม่ต้องรอ snapshot)
 
   // ── อัปเดตยอดชิบของตัวเองลง Firestore ทุกจบตา (กันยอดหายตอนออก) ──
   settleMyChips(scores);
@@ -1465,7 +1495,9 @@ function showResults(){
 
 function renderResults(players,handsById,scores){  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1)+' • x'+(roomData.rate||1)+((roomData.commission||0)>0?' • คอม '+roomData.commission+'%':'');
   const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
-  document.getElementById('res-list').innerHTML=sorted.map((s,i)=>{
+  const darby=scores.find(s=>s.isDarby);
+  const darbyHTML=darby?`<div class="darby-banner">🏆 ดาร์บี้! ${darby.avatar} ${darby.name} กินรวดทุกกอง ทุกคน! (คะแนน x4)</div>`:'';
+  document.getElementById('res-list').innerHTML=darbyHTML+sorted.map((s,i)=>{
     const medals=['🥇','🥈','🥉','4️⃣'];
     const pos=s.roundScore>=0;
     const h=handsById[s.name]||{};
@@ -1577,6 +1609,13 @@ function goToResults(){
 }
 
 async function nextRound(){
+  // กันเล่นเกินทุน — ถ้าชิบไม่พอขั้นต่ำ ห้ามเล่นรอบต่อไป
+  const needChip=35*(roomData.rate||1);
+  if(myMemberId&&myChips<needChip){
+    alert('🪙 ชิบไม่พอเล่นรอบต่อไปครับ\n\nชิบเหลือ '+myChips+' • ขั้นต่ำห้องนี้ '+needChip+'\nกรุณาให้แอดมินเติมชิบก่อน\n\nระบบจะพากลับไปล็อบบี้');
+    leaveRoom();
+    return;
+  }
   resultsShown=false;
   battleShown=false;
   hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
@@ -1604,7 +1643,7 @@ async function settleMyChips(scores){
       chips:firebase.firestore.FieldValue.increment(delta)
     });
     const snap=await db.collection('members').doc(myMemberId).get();
-    if(snap.exists){ sessionStorage.setItem('gr_chips', snap.data().chips||0); }
+    if(snap.exists){ myChips=snap.data().chips||0; sessionStorage.setItem('gr_chips', myChips); }
   }catch(e){}
 }
 
@@ -1676,6 +1715,7 @@ function toggleChat(){
 function initChat(){
   if(!roomId)return;
   document.getElementById('chat-fab').style.display='flex';
+  if(chatUnsub)return; // มี listener อยู่แล้ว → กันซ้อน (เด้งรัวๆ)
   chatUnsub=db.collection('rooms').doc(roomId)
     .collection('chat').orderBy('ts').limitToLast(50)
     .onSnapshot(snap=>{
