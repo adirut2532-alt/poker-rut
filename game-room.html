@@ -638,9 +638,9 @@ html,body{
       <div style="font-size:12px;font-weight:800;color:#f0c040;margin-bottom:8px">📊 คะแนนสะสม</div>
       <div id="res-total"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="abtn abtn-ready" id="btn-next" onclick="nextRound()" style="display:none">▶ รอบต่อไป</button>
-      <button class="abtn abtn-clear" onclick="leaveRoom()">🏠 ออกห้อง</button>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:center;">
+      <button class="abtn abtn-ready" id="btn-next" onclick="nextRound()" style="display:none;flex:1">▶ รอบต่อไป</button>
+      <button class="abtn abtn-clear" onclick="confirmLeave()" style="flex:0 0 auto;padding-left:20px;padding-right:20px;font-size:14px">🚪 ออก</button>
     </div>
     <button class="abtn abtn-clear" onclick="openHistory()" style="width:100%;margin-top:8px">📜 ประวัติไพ่ย้อนหลัง</button>
   </div>
@@ -983,13 +983,14 @@ function listen(){
     } else if(st==='playing'){
       const hasMycards=!!(roomData.deals||{})[myName]?.length;
       if(!hasMycards){
-        // deals ยังไม่มา → แสดงหน้ารอ แต่ไม่เรียก startRound
+        // ยังไม่มีไพ่ (เพิ่งเข้า/กลับเข้ามากลางรอบ) → นั่งดูรอบนี้ รอบหน้าได้เล่น
         if(cur!=='game') showScreen('game');
+        initChat();
         document.getElementById('game-body').innerHTML=`
-          <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-            <div style="font-size:36px">⏳</div>
-            <div style="font-size:14px;color:#f0c040;font-weight:700">รอรับไพ่...</div>
-            <div style="font-size:11px;color:#c8a860">กำลังรอ Host แจกไพ่</div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:24px;">
+            <div style="font-size:36px">👀</div>
+            <div style="font-size:15px;color:#f0c040;font-weight:800">นั่งดูรอบนี้อยู่</div>
+            <div style="font-size:12px;color:#c8a860;line-height:1.5">รอบนี้แจกไพ่ไปแล้ว<br>คุณจะได้เล่นในรอบถัดไปอัตโนมัติ</div>
           </div>`;
       } else if(cur==='lobby'||cur==='result'){
         resultsShown=false;
@@ -1058,18 +1059,22 @@ async function hostStart(){
   // ดึงข้อมูลสดจาก Firebase เสมอ ไม่ต้องอิง isHost ที่ cache ไว้
   const snap=await db.collection('rooms').doc(roomId).get();
   const data=snap.data()||{};
-  const allPlayers=Object.values(data.players||{});
-  const me=allPlayers.find(p=>p.name===myName);
+  const entries=Object.entries(data.players||{});
+  const me=entries.find(([id,p])=>p.name===myName);
   if(!me){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}
-  if(!me.isHost){alert('คุณไม่ใช่ Host ครับ');return;}
-  const activePlayers=allPlayers.filter(p=>!p.isSpectator&&!p.isQueue);
-  if(activePlayers.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
+  if(!me[1].isHost){alert('คุณไม่ใช่ Host ครับ');return;}
+  // โปรโมทคนที่นั่งดู/กลับเข้ามา (spectator) ให้เป็นผู้เล่นรอบใหม่ — สูงสุด 4 คน (ไม่นับคิว)
+  const playEntries=entries.filter(([id,p])=>!p.isQueue).slice(0,4);
+  if(playEntries.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
   const deck=shuffle(makeDeck());
   const deals={};
-  activePlayers.forEach((p,i)=>{ deals[p.name]=deck.slice(i*13,(i+1)*13); });
-  await db.collection('rooms').doc(roomId).update({
-    status:'playing',round:(data.round||0)+1,deals,hands:{},startedAt:Date.now()
+  const updates={status:'playing',round:(data.round||0)+1,hands:{},startedAt:Date.now()};
+  playEntries.forEach(([id,p],i)=>{
+    deals[p.name]=deck.slice(i*13,(i+1)*13);
+    if(p.isSpectator)updates[`players.${id}.isSpectator`]=false; // โปรโมทกลับมาเล่น
   });
+  updates.deals=deals;
+  await db.collection('rooms').doc(roomId).update(updates);
 }
 
 // ── START ROUND ──
@@ -1471,7 +1476,7 @@ function showResults(){
   const newScores={};
   players.forEach(p=>{
     const old=(roomData.scores||{})[p.id]||0;
-    newScores[p.id]=old+(scores.find(s=>s.id===p.id)?.roundScore||0);
+    newScores[p.id]=Math.round((old+(scores.find(s=>s.id===p.id)?.roundScore||0))*100)/100;
   });
   db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
   roomData.scores=newScores; // อัปเดต local ทันที เพื่อให้คะแนนสะสมแสดงรวมรอบนี้เลย (ไม่ต้องรอ snapshot)
@@ -1643,7 +1648,7 @@ async function settleMyChips(scores){
       chips:firebase.firestore.FieldValue.increment(delta)
     });
     const snap=await db.collection('members').doc(myMemberId).get();
-    if(snap.exists){ myChips=snap.data().chips||0; sessionStorage.setItem('gr_chips', myChips); }
+    if(snap.exists){ myChips=Math.round((snap.data().chips||0)*100)/100; sessionStorage.setItem('gr_chips', myChips); }
   }catch(e){}
 }
 
@@ -1657,6 +1662,13 @@ async function leaveRoom(){
     // ถ้าออกระหว่างเกม และยังไม่ได้ยืนยัน → บันทึกเป็นฟาว
     if((data.status==='playing')&&data.deals&&data.deals[myName]&&!data.hands?.[myName]?.done){
       updates[`hands.${myName}`]={front:[],mid:[],back:[],done:true,foul:true};
+    }
+    // ถ้าคนที่ออกเป็น Host → โอน Host ให้คนอื่น (กันห้องค้าง ไม่มีใครเริ่มเกมได้)
+    const meEntry=data.players?.[myId]||Object.values(data.players||{}).find(p=>p.name===myName);
+    if(meEntry?.isHost){
+      const others=Object.entries(data.players||{}).filter(([id,p])=>id!==myId&&p.name!==myName);
+      const pick=others.find(([id,p])=>!p.isSpectator&&!p.isQueue)||others[0];
+      if(pick)updates[`players.${pick[0]}.isHost`]=true;
     }
     updates[`players.${myId}`]=firebase.firestore.FieldValue.delete();
     await db.collection('rooms').doc(roomId).update(updates);
