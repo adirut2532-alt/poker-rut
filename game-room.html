@@ -1415,6 +1415,15 @@ function showResults(){
     scores=calcScores(players,handsById);
   }
 
+  // ── คูณอัตราเล่น + หักคอมมิชชั่นจากยอดที่ชนะ (อัตโนมัติ) ──
+  const rate=roomData.rate||1;
+  const comm=roomData.commission||0; // เปอร์เซ็นต์
+  scores.forEach(s=>{
+    let amt=s.roundScore*rate;
+    if(amt>0&&comm>0) amt=amt*(1-comm/100); // หักคอมเฉพาะคนที่ชนะ
+    s.roundScore=Math.round(amt*100)/100;   // ปัดทศนิยม 2 ตำแหน่ง
+  });
+
   const newScores={};
   players.forEach(p=>{
     const old=(roomData.scores||{})[p.id]||0;
@@ -1436,7 +1445,7 @@ function showResults(){
   showScreen('result');
 }
 
-function renderResults(players,handsById,scores){  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1);
+function renderResults(players,handsById,scores){  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1)+' • x'+(roomData.rate||1)+((roomData.commission||0)>0?' • คอม '+roomData.commission+'%':'');
   const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
   document.getElementById('res-list').innerHTML=sorted.map((s,i)=>{
     const medals=['🥇','🥈','🥉','4️⃣'];

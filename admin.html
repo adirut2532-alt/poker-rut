@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>3 กอง กาญ — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#0f0905;--card:rgba(28,18,10,.85);--gold:#ffd9a8;--gold2:#c8a060;--orange:#ff9a2e;--border:rgba(255,180,80,.22);}
+body{font-family:'Kanit',sans-serif;background:var(--bg);min-height:100vh;min-height:100dvh;color:#fff8e8;}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
+.o1{width:480px;height:480px;background:rgba(255,120,10,.22);top:-150px;left:-150px;}
+.o2{width:380px;height:380px;background:rgba(220,70,0,.18);bottom:-100px;right:-100px;}
+
+/* AUTH */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;position:relative;z-index:1;}
+.auth-card{
+  background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border:1px solid var(--border);border-radius:24px;padding:30px 24px;
+  width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.auth-top{text-align:center;margin-bottom:22px;}
+.auth-icon{font-size:46px;}
+.auth-title{font-size:20px;font-weight:900;color:var(--orange);margin-top:8px;}
+.auth-sub{font-size:12px;color:var(--gold2);}
+
+/* MAIN */
+#main-screen{display:none;position:relative;z-index:1;}
+.top-bar{
+  display:flex;align-items:center;gap:10px;padding:14px 16px;
+  background:rgba(12,8,4,.7);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;
+}
+.top-bar-text{flex:1;}
+.top-bar-title{font-size:17px;font-weight:900;color:var(--orange);}
+.top-bar-sub{font-size:11px;color:var(--gold2);}
+.btn-logout{background:rgba(220,50,50,.2);border:1px solid rgba(220,50,50,.35);color:#ff9090;border-radius:8px;padding:6px 12px;font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+
+.content{padding:14px;max-width:560px;margin:0 auto;}
+
+/* STATS */
+.stats{display:flex;gap:9px;margin-bottom:16px;}
+.stat{flex:1;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 8px;text-align:center;}
+.stat-n{font-size:26px;font-weight:900;color:var(--orange);}
+.stat-l{font-size:11px;color:var(--gold2);font-weight:700;}
+
+/* SECTION */
+.sec{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;}
+.sec-title{font-size:14px;font-weight:900;color:var(--orange);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sec-badge{background:rgba(255,120,0,.3);border-radius:20px;padding:2px 10px;font-size:12px;}
+
+/* MEMBER CARD */
+.m-card{
+  background:rgba(12,8,4,.5);border:1px solid rgba(255,180,80,.12);
+  border-radius:13px;padding:12px 13px;margin-bottom:9px;
+  display:flex;align-items:center;gap:11px;
+}
+.m-card.pending{border-color:rgba(255,165,0,.35);background:rgba(255,120,0,.08);}
+.m-av{font-size:28px;flex-shrink:0;width:40px;text-align:center;}
+.m-info{flex:1;min-width:0;}
+.m-name{font-size:15px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-email{font-size:11px;color:var(--gold2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px;}
+.badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;}
+.b-pending{background:rgba(255,165,0,.2);color:#ffca6a;border:1px solid rgba(255,165,0,.3);}
+.b-on{background:rgba(20,180,80,.2);color:#40e880;border:1px solid rgba(20,180,80,.3);}
+.b-off{background:rgba(220,50,50,.2);color:#ff8080;border:1px solid rgba(220,50,50,.3);}
+.chip-tag{font-size:11px;color:var(--orange);font-weight:700;}
+.m-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+.btn{padding:7px 11px;border-radius:9px;font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:opacity .12s;}
+.btn:active{opacity:.75;}
+.btn-ok{background:rgba(20,180,80,.2);color:#40e880;border:1px solid rgba(20,180,80,.35);}
+.btn-warn{background:rgba(255,165,0,.2);color:#ffca6a;border:1px solid rgba(255,165,0,.3);}
+.btn-danger{background:rgba(220,50,50,.2);color:#ff8080;border:1px solid rgba(220,50,50,.3);}
+.btn-primary{background:linear-gradient(135deg,var(--orange),#d45200);color:#fff;box-shadow:0 3px 0 rgba(140,40,0,.5);}
+.btn-full{width:100%;padding:13px;font-size:15px;}
+.empty{text-align:center;color:var(--gold2);padding:24px;font-size:14px;}
+
+/* CHIP SELECTOR */
+.chip-row{display:flex;gap:7px;flex-wrap:wrap;}
+.chip-opt{
+  padding:9px 0;min-width:52px;flex:1;text-align:center;
+  background:rgba(12,7,3,.5);border:1.5px solid rgba(255,180,80,.2);
+  border-radius:11px;color:#ffd9a8;font-size:14px;font-weight:800;cursor:pointer;
+  transition:border-color .12s,background .12s,transform .1s;
+}
+.chip-opt:active{transform:scale(.95);}
+.chip-opt.sel{border-color:var(--orange);background:rgba(255,130,0,.25);color:#fff;box-shadow:0 0 0 3px rgba(255,140,20,.18);}
+.room-row{
+  background:rgba(12,8,4,.5);border:1px solid rgba(255,180,80,.14);
+  border-radius:13px;padding:12px 13px;margin-bottom:9px;
+  display:flex;align-items:center;gap:11px;
+}
+.room-row-info{flex:1;min-width:0;}
+.room-row-name{font-size:15px;font-weight:800;color:#fff;}
+.room-row-code{font-size:12px;color:var(--orange);font-weight:800;letter-spacing:1px;}
+.room-row-meta{font-size:11px;color:var(--gold2);margin-top:3px;}
+.room-row-meta b{color:#ffca6a;}
+
+/* INPUTS */
+label{display:block;font-size:13px;font-weight:700;color:var(--gold);margin-bottom:5px;}
+input[type="text"],input[type="password"],input[type="number"]{
+  width:100%;padding:12px 14px;background:rgba(12,7,3,.6);
+  border:1.5px solid rgba(255,180,80,.28);border-radius:12px;
+  color:#fff;font-family:'Kanit',sans-serif;font-size:15px;font-weight:500;
+  outline:none;-webkit-appearance:none;transition:border-color .15s,box-shadow .15s;
+}
+input::placeholder{color:rgba(255,235,210,.4);}
+input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,140,20,.16);}
+.err{background:rgba(220,50,50,.18);border:1px solid rgba(220,50,50,.35);border-radius:10px;padding:9px 12px;color:#ffacac;font-size:12px;font-weight:600;text-align:center;margin-top:9px;display:none;}
+.err.show{display:block;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:none;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal-box{background:#1a0e06;border:1px solid var(--border);border-radius:22px 22px 0 0;padding:22px 20px;width:100%;max-width:440px;box-shadow:0 -4px 28px rgba(0,0,0,.5);}
+.modal-title{font-size:16px;font-weight:900;color:var(--orange);margin-bottom:16px;}
+.modal-info{font-size:13px;color:var(--gold2);margin-bottom:14px;background:rgba(12,7,3,.4);padding:10px 13px;border-radius:10px;border:1px solid rgba(255,180,80,.15);}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(60px);background:rgba(28,18,8,.97);border:1px solid var(--border);border-radius:14px;padding:10px 22px;font-size:13px;font-weight:700;color:var(--orange);z-index:200;pointer-events:none;transition:transform .3s cubic-bezier(.175,.885,.32,1.275);white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-top">
+      <div class="auth-icon">⚙️</div>
+      <div class="auth-title">Admin Panel</div>
+      <div class="auth-sub">3 กอง กาญ</div>
+    </div>
+    <div id="setup-form" style="display:none">
+      <div style="text-align:center;font-size:13px;color:var(--gold2);margin-bottom:16px;line-height:1.5">🎉 ยังไม่มีบัญชีแอดมิน<br>ตั้งรหัสผ่านได้เลยครับ</div>
+      <div style="margin-bottom:10px"><label>รหัสผ่านแอดมิน</label><input type="password" id="setup-pass" placeholder="ตั้งรหัสผ่าน" maxlength="50"></div>
+      <div style="margin-bottom:14px"><label>ยืนยันรหัสผ่าน</label><input type="password" id="setup-pass2" placeholder="พิมพ์ซ้ำ" maxlength="50"></div>
+      <button class="btn btn-primary btn-full" id="btn-setup" onclick="doSetup()">✅ บันทึก</button>
+      <div class="err" id="setup-err"></div>
+    </div>
+    <div id="login-form">
+      <div style="margin-bottom:14px"><label>🔒 รหัสผ่านแอดมิน</label><input type="password" id="admin-pass" placeholder="••••••••" maxlength="50" onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+      <button class="btn btn-primary btn-full" id="btn-alog" onclick="doAdminLogin()">🔑 เข้าสู่ระบบ</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen">
+  <div class="top-bar">
+    <div class="top-bar-text">
+      <div class="top-bar-title">⚙️ Admin Panel</div>
+      <div class="top-bar-sub">3 กอง กาญ — จัดการสมาชิก</div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">ออก</button>
+  </div>
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="st-total">–</div><div class="stat-l">ทั้งหมด</div></div>
+      <div class="stat"><div class="stat-n" id="st-pending" style="color:#ffca6a">–</div><div class="stat-l">รออนุมัติ</div></div>
+      <div class="stat"><div class="stat-n" id="st-active" style="color:#40e880">–</div><div class="stat-l">เล่นได้</div></div>
+    </div>
+
+    <!-- CREATE ROOM -->
+    <div class="sec">
+      <div class="sec-title">🎰 สร้างห้องเกมใหม่</div>
+      <div style="margin-bottom:13px">
+        <label>ชื่อห้อง</label>
+        <input type="text" id="room-name" placeholder="เช่น ห้อง VIP, โต๊ะ 1" maxlength="24">
+      </div>
+      <div style="margin-bottom:6px"><label>💵 อัตราเล่น (ชิบ/แต้ม)</label></div>
+      <div class="chip-row" id="rate-row"></div>
+      <div style="margin:13px 0 6px"><label>✂️ คอมมิชชั่น (หักจากยอดที่ชนะ)</label></div>
+      <div class="chip-row" id="comm-row"></div>
+      <button class="btn btn-primary btn-full" id="btn-create-room" style="margin-top:14px" onclick="createRoom()">🎰 สร้างห้อง</button>
+      <div class="err" id="room-err"></div>
+    </div>
+
+    <!-- ROOM LIST -->
+    <div class="sec">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="sec-title" style="margin-bottom:0">🚪 ห้องที่เปิดอยู่</div>
+        <button class="btn btn-warn" style="padding:5px 11px;font-size:11px" onclick="loadRooms()">🔄</button>
+      </div>
+      <div id="rooms-list"><div class="empty">กำลังโหลด...</div></div>
+    </div>
+
+    <!-- PENDING -->
+    <div class="sec">
+      <div class="sec-title">
+        🕐 รออนุมัติ
+        <span class="sec-badge" id="pending-badge">0</span>
+      </div>
+      <div id="pending-list"><div class="empty">ไม่มีรายการรออนุมัติ ✨</div></div>
+    </div>
+
+    <!-- ALL MEMBERS -->
+    <div class="sec">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="sec-title" style="margin-bottom:0">👥 สมาชิกทั้งหมด</div>
+        <button class="btn btn-warn" style="padding:5px 11px;font-size:11px" onclick="loadMembers()">🔄</button>
+      </div>
+      <div id="members-list"><div class="empty">กำลังโหลด...</div></div>
+    </div>
+
+    <!-- CHANGE ADMIN PASS -->
+    <div class="sec">
+      <div class="sec-title">🔑 เปลี่ยนรหัสผ่านแอดมิน</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><label>รหัสใหม่</label><input type="password" id="chg-p1" placeholder="••••••" maxlength="50"></div>
+        <div style="flex:1"><label>ยืนยัน</label><input type="password" id="chg-p2" placeholder="••••••" maxlength="50"></div>
+      </div>
+      <button class="btn btn-warn" onclick="changeAdminPass()">💾 บันทึก</button>
+      <div class="err" id="chg-err"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CHIPS MODAL -->
+<div class="modal-bg" id="chips-modal">
+  <div class="modal-box">
+    <div class="modal-title">💰 จัดการชิบ</div>
+    <div class="modal-info" id="chips-modal-info"></div>
+    <div style="margin-bottom:10px">
+      <label>ชิบปัจจุบัน: <span id="chips-current" style="color:var(--orange)"></span></label>
+      <input type="number" id="chips-new" placeholder="ใส่จำนวนชิบใหม่" min="0">
+    </div>
+    <div style="font-size:12px;color:var(--gold2);margin-bottom:4px">
+      หมายเหตุ: ระบุจำนวนชิบทั้งหมด (ไม่ใช่เพิ่ม/ลบ)
+    </div>
+    <div class="err" id="chips-err"></div>
+    <div class="modal-btns">
+      <button class="btn btn-danger" style="flex:1" onclick="closeModal('chips-modal')">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveChips()">💰 บันทึกชิบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",
+  authDomain:"poker-kan.firebaseapp.com",
+  projectId:"poker-kan",
+  storageBucket:"poker-kan.firebasestorage.app",
+  messagingSenderId:"267226971967",
+  appId:"1:267226971967:web:3ae1891c63194a97715d8a"
+});
+const db=firebase.firestore();
+let chipsTargetId=null;
+let toastTmr=null;
+
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+function toast(m){clearTimeout(toastTmr);const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');toastTmr=setTimeout(()=>e.classList.remove('show'),2600);}
+function showErr(id,m){const e=document.getElementById(id);e.textContent=m;e.classList.add('show');}
+function clearErr(id){document.getElementById(id).classList.remove('show');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── AUTH ──
+window.addEventListener('load',async()=>{
+  try{
+    const snap=await db.collection('config').doc('admin').get();
+    if(!snap.exists){document.getElementById('login-form').style.display='none';document.getElementById('setup-form').style.display='block';}
+  }catch(e){showErr('login-err','โหลดไม่ได้: '+(e.message||e));}
+});
+async function doSetup(){
+  clearErr('setup-err');
+  const p1=document.getElementById('setup-pass').value;
+  const p2=document.getElementById('setup-pass2').value;
+  if(!p1||p1.length<4){showErr('setup-err','รหัสต้องมีอย่างน้อย 4 ตัว');return;}
+  if(p1!==p2){showErr('setup-err','รหัสไม่ตรงกัน');return;}
+  const btn=document.getElementById('btn-setup');
+  btn.disabled=true;btn.textContent='⏳...';
+  try{await db.collection('config').doc('admin').set({passwordHash:await sha256(p1),updatedAt:Date.now()});enterAdmin();}
+  catch(e){showErr('setup-err',e.message||e);btn.disabled=false;btn.textContent='✅ บันทึก';}
+}
+async function doAdminLogin(){
+  clearErr('login-err');
+  const pass=document.getElementById('admin-pass').value;
+  if(!pass){showErr('login-err','กรุณาใส่รหัสผ่าน');return;}
+  const btn=document.getElementById('btn-alog');btn.disabled=true;btn.textContent='⏳...';
+  try{
+    const hash=await sha256(pass);
+    const snap=await db.collection('config').doc('admin').get();
+    if(!snap.exists||snap.data().passwordHash!==hash){showErr('login-err','รหัสผ่านไม่ถูกต้อง');return;}
+    enterAdmin();
+  }catch(e){showErr('login-err',e.message||e);}
+  finally{btn.disabled=false;btn.textContent='🔑 เข้าสู่ระบบ';}
+}
+function enterAdmin(){document.getElementById('auth-screen').style.display='none';document.getElementById('main-screen').style.display='block';buildRoomSelectors();loadRooms();loadMembers();}
+function doLogout(){document.getElementById('auth-screen').style.display='flex';document.getElementById('main-screen').style.display='none';document.getElementById('admin-pass').value='';}
+
+// ── ROOMS ──
+const RATES=[1,5,10,15,20,30,50];
+const COMMS=[0,0.25,0.5,0.75,1,1.5,1.75,2];
+let selRate=5, selComm=0;
+
+function buildRoomSelectors(){
+  document.getElementById('rate-row').innerHTML=RATES.map(r=>
+    `<div class="chip-opt${r===selRate?' sel':''}" onclick="pickRate(this,${r})">${r}</div>`).join('');
+  document.getElementById('comm-row').innerHTML=COMMS.map(c=>
+    `<div class="chip-opt${c===selComm?' sel':''}" onclick="pickComm(this,${c})">${c}%</div>`).join('');
+}
+function pickRate(el,r){selRate=r;document.querySelectorAll('#rate-row .chip-opt').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');}
+function pickComm(el,c){selComm=c;document.querySelectorAll('#comm-row .chip-opt').forEach(e=>e.classList.remove('sel'));el.classList.add('sel');}
+
+function genCode(){
+  const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s='';for(let i=0;i<5;i++)s+=ch[Math.floor(Math.random()*ch.length)];return s;
+}
+
+async function loadRooms(){
+  const box=document.getElementById('rooms-list');
+  box.innerHTML='<div class="empty">กำลังโหลด...</div>';
+  try{
+    const snap=await db.collection('admin').doc('data').get();
+    const rooms=(snap.exists?(snap.data().rooms||[]):[]).filter(r=>r.code);
+    if(!rooms.length){box.innerHTML='<div class="empty">ยังไม่มีห้อง สร้างห้องใหม่ได้เลยครับ 🎰</div>';return;}
+    box.innerHTML=rooms.slice().reverse().map(r=>{
+      const code=r.code.replace(/'/g,"\\'");
+      const nm=(r.name||'ห้องเกม').replace(/'/g,"\\'");
+      return`<div class="room-row">
+        <div class="room-row-info">
+          <div class="room-row-name">${r.name||'ห้องเกม'} <span class="room-row-code">#${r.code}</span></div>
+          <div class="room-row-meta">💵 อัตรา <b>${r.rate||1}</b> &nbsp;•&nbsp; ✂️ คอม <b>${r.commission||0}%</b></div>
+        </div>
+        <button class="btn btn-danger" onclick="deleteRoom('${code}','${nm}')">ลบ</button>
+      </div>`;
+    }).join('');
+  }catch(e){box.innerHTML=`<div style="color:#ff8080;padding:12px">โหลดไม่ได้: ${e.message||e}</div>`;}
+}
+
+async function createRoom(){
+  clearErr('room-err');
+  const name=document.getElementById('room-name').value.trim();
+  if(!name){showErr('room-err','กรุณาตั้งชื่อห้องครับ');return;}
+  const btn=document.getElementById('btn-create-room');
+  btn.disabled=true;btn.textContent='⏳ กำลังสร้าง...';
+  try{
+    // หา code ที่ไม่ซ้ำ
+    const snap=await db.collection('admin').doc('data').get();
+    const existing=(snap.exists?(snap.data().rooms||[]):[]).filter(r=>r.code);
+    let code;do{code=genCode();}while(existing.some(r=>r.code===code));
+    const rec={code,name,rate:selRate,commission:selComm,createdAt:Date.now()};
+    // 1) สร้าง room doc (game-room อ่านอันนี้)
+    await db.collection('rooms').doc(code).set({
+      name,rate:selRate,commission:selComm,
+      status:'lobby',players:{},round:0,scores:{},
+      createdAt:Date.now(),createdByAdmin:true
+    });
+    // 2) เพิ่มเข้า admin/data (lobby อ่านอันนี้)
+    await db.collection('admin').doc('data').set({
+      rooms:firebase.firestore.FieldValue.arrayUnion(rec)
+    },{merge:true});
+    toast('🎰 สร้างห้อง "'+name+'" แล้ว (#'+code+')');
+    document.getElementById('room-name').value='';
+    loadRooms();
+  }catch(e){showErr('room-err','สร้างไม่สำเร็จ: '+(e.message||e));}
+  finally{btn.disabled=false;btn.textContent='🎰 สร้างห้อง';}
+}
+
+async function deleteRoom(code,name){
+  if(!confirm('ลบห้อง "'+name+'" (#'+code+') ?\nประวัติและผู้เล่นในห้องจะถูกลบทั้งหมด'))return;
+  try{
+    const snap=await db.collection('admin').doc('data').get();
+    const rooms=(snap.exists?(snap.data().rooms||[]):[]).filter(r=>r.code&&r.code!==code);
+    await db.collection('admin').doc('data').set({rooms},{merge:true});
+    await db.collection('rooms').doc(code).delete().catch(()=>{});
+    toast('🗑️ ลบห้อง '+name+' แล้ว');
+    loadRooms();
+  }catch(e){alert('ลบไม่ได้: '+(e.message||e));}
+}
+
+// ── MEMBERS ──
+async function loadMembers(){
+  document.getElementById('members-list').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  document.getElementById('pending-list').innerHTML='<div class="empty">กำลังโหลด...</div>';
+  try{
+    const snap=await db.collection('members').orderBy('createdAt','desc').get();
+    const all=[];snap.forEach(d=>all.push({id:d.id,...d.data()}));
+    const pending=all.filter(m=>!m.approved);
+    const active=all.filter(m=>m.approved&&m.active!==false&&m.chips>0);
+    document.getElementById('st-total').textContent=all.length;
+    document.getElementById('st-pending').textContent=pending.length;
+    document.getElementById('st-active').textContent=active.length;
+    document.getElementById('pending-badge').textContent=pending.length;
+    // pending section
+    document.getElementById('pending-list').innerHTML=pending.length
+      ? pending.map(m=>memberCardHTML(m,true)).join('')
+      : '<div class="empty">ไม่มีรายการรออนุมัติ ✨</div>';
+    // all members (approved only)
+    const approved=all.filter(m=>m.approved);
+    document.getElementById('members-list').innerHTML=approved.length
+      ? approved.map(m=>memberCardHTML(m,false)).join('')
+      : '<div class="empty">ยังไม่มีสมาชิกที่อนุมัติแล้ว</div>';
+  }catch(e){document.getElementById('members-list').innerHTML=`<div style="color:#ff8080;padding:12px">โหลดไม่ได้: ${e.message||e}</div>`;}
+}
+
+function memberCardHTML(m,isPending){
+  const on=m.active!==false;
+  const date=m.createdAt?new Date(m.createdAt).toLocaleDateString('th',{day:'numeric',month:'short'}):'-';
+  const statusBadge=isPending
+    ?'<span class="badge b-pending">⏳ รออนุมัติ</span>'
+    :on?'<span class="badge b-on">✅ ใช้งานได้</span>':'<span class="badge b-off">🔒 ระงับ</span>';
+  const chipTag=`<span class="chip-tag">💰 ${m.chips||0} ชิบ</span>`;
+  const safeId=m.id.replace(/'/g,"\\'");
+  const safeName=(m.name||m.id).replace(/'/g,"\\'");
+  const actions=isPending
+    ?`<button class="btn btn-ok" onclick="approveMember('${safeId}','${safeName}')">✅ อนุมัติ</button>
+       <button class="btn btn-warn" onclick="openChipsModal('${safeId}','${safeName}',${m.chips||0})">💰 ชิบ</button>
+       <button class="btn btn-danger" onclick="deleteMember('${safeId}','${safeName}')">ลบ</button>`
+    :`<button class="btn ${on?'btn-danger':'btn-ok'}" onclick="toggleMember('${safeId}',${on})">${on?'ระงับ':'เปิด'}</button>
+      <button class="btn btn-warn" onclick="openChipsModal('${safeId}','${safeName}',${m.chips||0})">💰 ชิบ</button>
+      <button class="btn btn-danger" onclick="deleteMember('${safeId}','${safeName}')">ลบ</button>`;
+  return`<div class="m-card${isPending?' pending':''}">
+    <div class="m-av">${m.avatar||'🎴'}</div>
+    <div class="m-info">
+      <div class="m-name">${m.name||m.id}</div>
+      <div class="m-email">${m.email||'—'}</div>
+      <div class="m-meta">${statusBadge}${chipTag}<span style="font-size:10px;color:var(--gold2)">${date}</span></div>
+    </div>
+    <div class="m-actions">${actions}</div>
+  </div>`;
+}
+
+async function approveMember(id,name){
+  try{
+    await db.collection('members').doc(id).update({approved:true});
+    toast('✅ อนุมัติ '+name+' แล้ว');loadMembers();
+  }catch(e){alert('ไม่สำเร็จ: '+(e.message||e));}
+}
+async function toggleMember(id,on){
+  if(!confirm((on?'ระงับ':'เปิดใช้งาน')+' บัญชีนี้?'))return;
+  try{await db.collection('members').doc(id).update({active:!on});toast((on?'🔒 ระงับ':'✅ เปิด')+' บัญชีแล้ว');loadMembers();}
+  catch(e){alert('ไม่สำเร็จ: '+(e.message||e));}
+}
+async function deleteMember(id,name){
+  if(!confirm('ลบ "'+name+'" ออกถาวร?'))return;
+  try{await db.collection('members').doc(id).delete();toast('🗑️ ลบ '+name+' แล้ว');loadMembers();}
+  catch(e){alert('ลบไม่ได้: '+(e.message||e));}
+}
+
+function openChipsModal(id,name,current){
+  chipsTargetId=id;
+  document.getElementById('chips-modal-info').textContent='👤 '+name;
+  document.getElementById('chips-current').textContent=current+' ชิบ';
+  document.getElementById('chips-new').value=current;
+  clearErr('chips-err');
+  document.getElementById('chips-modal').classList.add('open');
+}
+async function saveChips(){
+  clearErr('chips-err');
+  const val=parseInt(document.getElementById('chips-new').value)||0;
+  if(val<0){showErr('chips-err','ชิบต้องไม่ติดลบครับ');return;}
+  try{
+    await db.collection('members').doc(chipsTargetId).update({chips:val,approved:true});
+    closeModal('chips-modal');toast('💰 บันทึกชิบแล้ว: '+val+' ชิบ');loadMembers();
+  }catch(e){showErr('chips-err','ไม่สำเร็จ: '+(e.message||e));}
+}
+
+async function changeAdminPass(){
+  clearErr('chg-err');
+  const p1=document.getElementById('chg-p1').value;
+  const p2=document.getElementById('chg-p2').value;
+  if(!p1||p1.length<4){showErr('chg-err','รหัสต้องมีอย่างน้อย 4 ตัว');return;}
+  if(p1!==p2){showErr('chg-err','รหัสไม่ตรงกัน');return;}
+  if(!confirm('เปลี่ยนรหัสผ่านแอดมิน?'))return;
+  try{await db.collection('config').doc('admin').update({passwordHash:await sha256(p1),updatedAt:Date.now()});document.getElementById('chg-p1').value='';document.getElementById('chg-p2').value='';toast('✅ เปลี่ยนรหัสผ่านแล้ว');}
+  catch(e){showErr('chg-err',e.message||e);}
+}
+</script>
+</body>
+</html>
