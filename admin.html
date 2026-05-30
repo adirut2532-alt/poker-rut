@@ -271,7 +271,9 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 // ── AUTH ──
 window.addEventListener('load',async()=>{
   try{
-    const snap=await db.collection('config').doc('admin').get();
+    // เช็ค 2 ที่ — รองรับทั้งเวอร์ชันเก่าและใหม่
+    let snap=await db.collection('admin').doc('config').get();
+    if(!snap.exists) snap=await db.collection('config').doc('admin').get().catch(()=>({exists:false}));
     if(!snap.exists){document.getElementById('login-form').style.display='none';document.getElementById('setup-form').style.display='block';}
   }catch(e){showErr('login-err','โหลดไม่ได้: '+(e.message||e));}
 });
@@ -283,7 +285,13 @@ async function doSetup(){
   if(p1!==p2){showErr('setup-err','รหัสไม่ตรงกัน');return;}
   const btn=document.getElementById('btn-setup');
   btn.disabled=true;btn.textContent='⏳...';
-  try{await db.collection('config').doc('admin').set({passwordHash:await sha256(p1),updatedAt:Date.now()});enterAdmin();}
+  try{
+    const hash=await sha256(p1);
+    const data={passwordHash:hash,updatedAt:Date.now()};
+    await db.collection('admin').doc('config').set(data);
+    await db.collection('config').doc('admin').set(data).catch(()=>{});// เขียนทั้ง 2 ที่
+    enterAdmin();
+  }
   catch(e){showErr('setup-err',e.message||e);btn.disabled=false;btn.textContent='✅ บันทึก';}
 }
 async function doAdminLogin(){
@@ -293,7 +301,9 @@ async function doAdminLogin(){
   const btn=document.getElementById('btn-alog');btn.disabled=true;btn.textContent='⏳...';
   try{
     const hash=await sha256(pass);
-    const snap=await db.collection('config').doc('admin').get();
+    // เช็ค admin/config ก่อน ถ้าไม่มีค่อยลอง config/admin (เวอร์ชันเก่า)
+    let snap=await db.collection('admin').doc('config').get();
+    if(!snap.exists) snap=await db.collection('config').doc('admin').get().catch(()=>({exists:false,data:()=>({})}));
     if(!snap.exists||snap.data().passwordHash!==hash){showErr('login-err','รหัสผ่านไม่ถูกต้อง');return;}
     enterAdmin();
   }catch(e){showErr('login-err',e.message||e);}
@@ -477,7 +487,7 @@ async function changeAdminPass(){
   if(!p1||p1.length<4){showErr('chg-err','รหัสต้องมีอย่างน้อย 4 ตัว');return;}
   if(p1!==p2){showErr('chg-err','รหัสไม่ตรงกัน');return;}
   if(!confirm('เปลี่ยนรหัสผ่านแอดมิน?'))return;
-  try{await db.collection('config').doc('admin').update({passwordHash:await sha256(p1),updatedAt:Date.now()});document.getElementById('chg-p1').value='';document.getElementById('chg-p2').value='';toast('✅ เปลี่ยนรหัสผ่านแล้ว');}
+  try{await db.collection('admin').doc('config').update({passwordHash:await sha256(p1),updatedAt:Date.now()});document.getElementById('chg-p1').value='';document.getElementById('chg-p2').value='';toast('✅ เปลี่ยนรหัสผ่านแล้ว');}
   catch(e){showErr('chg-err',e.message||e);}
 }
 </script>
