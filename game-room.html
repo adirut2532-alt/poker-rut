@@ -73,7 +73,7 @@ html,body{
 .round-table{
   flex:1;position:relative;display:flex;
   align-items:center;justify-content:center;
-  padding:24px 20px;min-height:0;
+  padding:24px 20px;min-height:150px;overflow:hidden;
 }
 .oval-table{
   position:relative;width:96%;height:88%;
@@ -99,7 +99,7 @@ html,body{
   background:rgba(15,22,36,.88);border-radius:16px;padding:8px 11px;
   border:1px solid rgba(212,175,55,.22);
   display:flex;flex-direction:column;align-items:center;gap:4px;
-  min-width:92px;max-width:120px;z-index:10;
+  min-width:92px;max-width:120px;z-index:5;
   box-shadow:0 8px 24px rgba(0,0,0,.6);
 }
 .opp-box.pos-top  {top:-22px;left:50%;transform:translateX(-50%);}
@@ -149,7 +149,7 @@ html,body{
   box-shadow:0 3px 10px rgba(240,168,32,.6);white-space:nowrap;
 }
 .table-divider{
-  height:2px;flex-shrink:0;
+  height:2px;flex-shrink:0;position:relative;z-index:30;
   background:linear-gradient(90deg,transparent,rgba(255,220,80,.4),transparent);
 }
 
@@ -159,6 +159,7 @@ html,body{
   border-top:2px solid rgba(255,220,80,.3);
   padding:8px 10px;display:flex;flex-direction:column;flex-shrink:0;
   padding-bottom:calc(34px + env(safe-area-inset-bottom,16px));
+  position:relative;z-index:30;
 }
 .my-info{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
 .my-av{
@@ -667,14 +668,16 @@ function handSortKey(cards){
     if(counts[0]===4){const qv=parseInt(Object.keys(rc).find(v=>rc[v]===4));main=cards.filter(c=>c.val===qv);kick=cards.filter(c=>c.val!==qv);}
     else if(counts[0]===3&&counts[1]===2){
       const tv=parseInt(Object.keys(rc).find(v=>rc[v]===3)),pv=parseInt(Object.keys(rc).find(v=>rc[v]===2));
-      main=[...cards.filter(c=>c.val===tv).sort((a,b)=>cardScore(b)-cardScore(a)),...cards.filter(c=>c.val===pv).sort((a,b)=>cardScore(b)-cardScore(a))];
-    }else if(counts[0]===3){const tv=parseInt(Object.keys(rc).find(v=>rc[v]===3));main=cards.filter(c=>c.val===tv);kick=cards.filter(c=>c.val!==tv).sort((a,b)=>cardScore(b)-cardScore(a));}
+      main=[...cards.filter(c=>c.val===tv),...cards.filter(c=>c.val===pv)];
+    }else if(counts[0]===3){const tv=parseInt(Object.keys(rc).find(v=>rc[v]===3));main=cards.filter(c=>c.val===tv);kick=cards.filter(c=>c.val!==tv);}
     else if(counts[0]===2&&counts[1]===2){const pvs=Object.keys(rc).filter(v=>rc[v]===2).map(Number).sort((a,b)=>b-a);main=cards.filter(c=>pvs.includes(c.val));kick=cards.filter(c=>!pvs.includes(c.val));}
-    else if(counts[0]===2){const pv=parseInt(Object.keys(rc).find(v=>rc[v]===2));main=cards.filter(c=>c.val===pv);kick=cards.filter(c=>c.val!==pv).sort((a,b)=>cardScore(b)-cardScore(a));}
-    else kick=cards.slice().sort((a,b)=>cardScore(b)-cardScore(a));
+    else if(counts[0]===2){const pv=parseInt(Object.keys(rc).find(v=>rc[v]===2));main=cards.filter(c=>c.val===pv);kick=cards.filter(c=>c.val!==pv);}
+    else kick=cards.slice();
   }
-  if(main.length>0&&!(counts[0]===3&&counts[1]===2))main.sort((a,b)=>cardScore(b)-cardScore(a));
-  return [...main,...kick].reduce((acc,c)=>acc*10000+cardScore(c),0);
+  // เรียงตาม "แต้ม" ล้วน (ไม่สนดอก) — ฟูลเฮ้าส์ไม่เรียง main ใหม่ (ตองมาก่อนคู่)
+  if(!(cards.length===5&&counts[0]===3&&counts[1]===2)) main.sort((a,b)=>b.val-a.val);
+  kick.sort((a,b)=>b.val-a.val);
+  return [...main,...kick].reduce((acc,c)=>acc*100+c.val,0);
 }
 
 function straightKey(vals){
@@ -684,7 +687,7 @@ function straightKey(vals){
 }
 
 function evalHand(cards){
-  if(!cards||!cards.length)return{rank:0,name:'',key:0};
+  if(!cards||!cards.length)return{rank:0,name:'',key:0,suit:0};
   const n=cards.length,vals=cards.map(c=>c.val).sort((a,b)=>b-a),suits=cards.map(c=>c.suit);
   const rc={};vals.forEach(v=>rc[v]=(rc[v]||0)+1);
   const cnt=Object.values(rc).sort((a,b)=>b-a);
@@ -705,12 +708,21 @@ function evalHand(cards){
     else if(cnt[0]===2){rank=1;name='คู่';}
   }
   let key;
-  if(rank===4&&n===5)key=rank*1e12+straightKey(vals)*1e9+handSortKey(cards);
-  else key=rank*1e12+handSortKey(cards);
-  return{rank,name,key};
+  if(rank===4&&n===5)key=straightKey(vals)*1e10+handSortKey(cards);
+  else key=handSortKey(cards);
+  // ดอกของไพ่ใบสูงสุด — ใช้ตัดสินเฉพาะกรณีแต้มเสมอกันหมดทุกใบ
+  const top=[...cards].sort((a,b)=>b.val-a.val||SUIT_RANK[b.suit]-SUIT_RANK[a.suit])[0];
+  const suit=top?SUIT_RANK[top.suit]:0;
+  return{rank,name,key,suit};
 }
 
-function cmpH(a,b){const ea=evalHand(a),eb=evalHand(b);if(ea.rank!==eb.rank)return ea.rank>eb.rank?1:-1;return ea.key>eb.key?1:ea.key<eb.key?-1:0;}
+function cmpH(a,b){
+  const ea=evalHand(a),eb=evalHand(b);
+  if(ea.rank!==eb.rank)return ea.rank>eb.rank?1:-1;        // ลำดับมือต่างกัน
+  if(ea.key!==eb.key)return ea.key>eb.key?1:-1;            // แต้ม/คิกเกอร์ต่างกัน
+  if(ea.suit!==eb.suit)return ea.suit>eb.suit?1:-1;        // เสมอกันหมด → วัดดอกไพ่สูงสุด
+  return 0;
+}
 
 function validArr(f,m,b){
   if(f.length!==3||m.length!==5||b.length!==5)return false;
@@ -813,6 +825,7 @@ function buildMatchups(players,hands){
 
 // ── STATE ──
 let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null;
+let myMemberId=null;
 let hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
 let roomData={};
 let timerIds=[];
@@ -831,6 +844,7 @@ window.addEventListener('load',async()=>{
   if(!roomId) roomId=sessionStorage.getItem('gr_room');
   if(!myId)   myId=sessionStorage.getItem('gr_myId');
   if(!myName) myName=sessionStorage.getItem('gr_myName')||'';
+  myMemberId=sessionStorage.getItem('gr_memberId')||'';
 
   if(!roomId||!myName){location.href='lobby.html';return;}
 
@@ -1386,7 +1400,8 @@ function showResults(){
 
   // dedupe ตามชื่อ — กันคนเดียวโผล่หลาย entry (เปิดหลายแท็บ/refresh/join ซ้ำ)
   const _seen={};
-  const players=Object.values(roomData.players||{})
+  const players=Object.entries(roomData.players||{})
+    .map(([id,p])=>({...p,id}))   // ⬅️ ติด id จาก key ของ Firestore (กันคะแนนสะสมเพี้ยน)
     .filter(p=>!p.isSpectator&&!p.isQueue)
     .filter(p=>{ if(_seen[p.name])return false; _seen[p.name]=1; return true; });
   const hands=roomData.hands||{};
@@ -1430,6 +1445,9 @@ function showResults(){
     newScores[p.id]=old+(scores.find(s=>s.id===p.id)?.roundScore||0);
   });
   db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
+
+  // ── อัปเดตยอดชิบของตัวเองลง Firestore ทุกจบตา (กันยอดหายตอนออก) ──
+  settleMyChips(scores);
 
   // ── บันทึกประวัติไพ่ของรอบนี้ลงในห้อง (อยู่จนกว่าห้องจะถูกลบ) ──
   saveRoundToHistory(players,handsById,scores);
@@ -1567,8 +1585,27 @@ async function nextRound(){
 
 function showScoreboard(){
   const sc=roomData.scores||{};
-  const pl=Object.values(roomData.players||{});
+  const pl=Object.entries(roomData.players||{}).map(([id,p])=>({...p,id}));
   alert('📊 คะแนนสะสม\n'+pl.sort((a,b)=>(sc[b.id]||0)-(sc[a.id]||0)).map(p=>`${p.avatar} ${p.name}: ${sc[p.id]>=0?'+':''}${sc[p.id]||0}`).join('\n'));
+}
+
+async function settleMyChips(scores){
+  if(!myMemberId) return;                 // ไม่มี member link (session เก่า) → ข้าม
+  const round=roomData.round||1;
+  const key='gr_settled_'+roomId+'_'+round;
+  if(sessionStorage.getItem(key)) return; // จบตานี้อัปเดตไปแล้วในเครื่องนี้
+  const mine=scores.find(s=>s.name===myName);
+  if(!mine) return;
+  const delta=mine.roundScore||0;         // ชิบที่ได้/เสียตานี้ (คูณอัตรา+หักคอมแล้ว)
+  sessionStorage.setItem(key,'1');        // กันอัปเดตซ้ำตานี้
+  if(delta===0) return;
+  try{
+    await db.collection('members').doc(myMemberId).update({
+      chips:firebase.firestore.FieldValue.increment(delta)
+    });
+    const snap=await db.collection('members').doc(myMemberId).get();
+    if(snap.exists){ sessionStorage.setItem('gr_chips', snap.data().chips||0); }
+  }catch(e){}
 }
 
 async function leaveRoom(){
@@ -1589,8 +1626,8 @@ async function leaveRoom(){
   }catch(e){}
   sessionStorage.removeItem('gr_room');
   sessionStorage.removeItem('gr_myId');
-  sessionStorage.removeItem('gr_myName');
-  location.href='lobby.html';
+  // เก็บ session การล็อกอินไว้ (gr_myName/gr_avatar/gr_chips/gr_memberId) ไม่ต้องล็อกอินใหม่
+  location.href='lobby.html?name='+encodeURIComponent(myName||'')+'&avatar='+encodeURIComponent(myAvatar||'🦊');
 }
 
 function confirmLeave(){
