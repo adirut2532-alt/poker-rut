@@ -604,6 +604,7 @@ html,body{
     <div id="lob-status" style="font-size:13px;color:#c8a860;text-align:center;">รอ Host กด "เริ่มเกม"</div>
     <button id="btn-start" class="abtn abtn-ready" onclick="hostStart()" style="display:none;max-width:360px;width:100%">🎮 เริ่มเกม!</button>
     <button id="btn-claim-host" class="abtn abtn-auto" onclick="claimHost()" style="display:none;max-width:360px;width:100%;margin-top:4px">👑 ขอเป็นหัวห้อง (ถ้า Host ไม่อยู่)</button>
+    <button id="btn-ready-confirm" class="abtn abtn-ready" onclick="confirmReady()" style="display:none;max-width:360px;width:100%;margin-top:4px">✅ ฉันพร้อม!</button>
     <button class="abtn abtn-clear" onclick="openHistory()" style="max-width:360px;width:100%;margin-top:4px">📜 ประวัติไพ่ย้อนหลัง</button>
     <button class="abtn abtn-clear" onclick="leaveRoom()" style="max-width:360px;width:100%;margin-top:4px">← ออก</button>
   </div>
@@ -851,6 +852,7 @@ function buildMatchups(players,hands){
 // ── STATE ──
 let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null;
 let myMemberId=null;
+let readyTick=null,finalizingReady=false;  // ระบบยืนยันความพร้อมก่อนแจกไพ่
 let myChips=0; // ยอดชิบจริงจาก members collection
 let hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
 let roomData={};
@@ -946,6 +948,14 @@ function listen(){
 
     // ถ้าไม่อยู่ในห้อง → เพิ่มเข้าไปอัตโนมัติ
     if(!me&&myName){
+      // ถ้าเพิ่งถูกเตะเพราะไม่กดพร้อม → เด้งออกไปล็อบบี้ (ไม่ join กลับ)
+      const kickedAt=(roomData.kicked||{})[myName];
+      if(kickedAt&&Date.now()-kickedAt<15000){
+        if(unsub)unsub();
+        alert('⏰ คุณไม่ได้กด "พร้อม" ทันเวลา จึงถูกนำออกจากห้อง');
+        leaveRoom();
+        return;
+      }
       const av=myAvatar||'🦊';
       // หา entry เก่าที่ชื่อเดียวกัน (เปิดหลายแท็บ/refresh จน id เปลี่ยน) → takeover
       const dupEntries=Object.entries(players).filter(([id,p])=>p.name===myName);
@@ -981,11 +991,15 @@ function listen(){
     }
     const st=roomData.status||'lobby';
     const cur=document.querySelector('.screen.active')?.id;
+    if(st!=='readycheck'&&readyTick){ clearInterval(readyTick); readyTick=null; }
     if(st==='lobby'||st==='waiting_start'){
       resultsShown=false;
       battleShown=false;
       if(cur!=='lobby')showScreen('lobby');
       renderLobby();
+    } else if(st==='readycheck'){
+      resultsShown=false;
+      renderReadyCheck();
     } else if(st==='playing'){
       const hasMycards=!!(roomData.deals||{})[myName]?.length;
       if(!hasMycards){
@@ -1065,6 +1079,8 @@ function renderLobby(){
   }
   const claimBtn=document.getElementById('btn-claim-host');
   if(claimBtn) claimBtn.style.display=amHost?'none':'block';
+  const rcBtn=document.getElementById('btn-ready-confirm');
+  if(rcBtn) rcBtn.style.display='none';
 }
 
 async function claimHost(){
@@ -1091,18 +1107,96 @@ async function hostStart(){
   const me=entries.find(([id,p])=>p.name===myName);
   if(!me){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}
   if(!me[1].isHost){alert('คุณไม่ใช่ Host ครับ');return;}
-  // โปรโมทคนที่นั่งดู/กลับเข้ามา (spectator) ให้เป็นผู้เล่นรอบใหม่ — สูงสุด 4 คน (ไม่นับคิว)
-  const playEntries=entries.filter(([id,p])=>!p.isQueue).slice(0,4);
+  const playEntries=entries.filter(([id,p])=>!p.isQueue);
   if(playEntries.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
-  const deck=shuffle(makeDeck());
-  const deals={};
-  const updates={status:'playing',round:(data.round||0)+1,hands:{},startedAt:Date.now()};
-  playEntries.forEach(([id,p],i)=>{
-    deals[p.name]=deck.slice(i*13,(i+1)*13);
-    if(p.isSpectator)updates[`players.${id}.isSpectator`]=false; // โปรโมทกลับมาเล่น
+  // ── เริ่มถามความพร้อม 30 วินาที (host พร้อมอัตโนมัติ, คนอื่นต้องกดยืนยัน) ──
+  finalizingReady=false;
+  const updates={status:'readycheck',readyAt:Date.now(),kicked:{}};
+  entries.forEach(([id,p])=>{
+    if(p.isQueue) return;
+    updates['players.'+id+'.ready']=(id===me[0]); // host พร้อมเลย, คนอื่น false
   });
-  updates.deals=deals;
   await db.collection('rooms').doc(roomId).update(updates);
+}
+
+// ผู้เล่นกดยืนยันพร้อม
+async function confirmReady(){
+  try{
+    const entries=Object.entries(roomData.players||{});
+    const meE=entries.find(([id])=>id===myId)||entries.find(([id,p])=>p.name===myName);
+    if(!meE) return;
+    await db.collection('rooms').doc(roomId).update({['players.'+meE[0]+'.ready']:true});
+  }catch(e){}
+}
+
+// host สรุปผลความพร้อม: เตะคนไม่พร้อม + แจกไพ่ให้คนที่พร้อม
+async function finalizeReadyCheck(){
+  if(finalizingReady) return;
+  finalizingReady=true;
+  try{
+    const snap=await db.collection('rooms').doc(roomId).get();
+    const data=snap.data()||{};
+    if((data.status||'')!=='readycheck'){ finalizingReady=false; return; }
+    const entries=Object.entries(data.players||{});
+    const ready=entries.filter(([id,p])=>!p.isQueue&&p.ready);
+    const notReady=entries.filter(([id,p])=>!p.isQueue&&!p.ready);
+    if(ready.length<2){
+      // คนพร้อมไม่ถึง 2 → ยกเลิก กลับล็อบบี้ (ไม่เตะใคร)
+      await db.collection('rooms').doc(roomId).update({status:'lobby'});
+      finalizingReady=false;
+      return;
+    }
+    const updates={status:'playing',round:(data.round||0)+1,hands:{},startedAt:Date.now()};
+    // เตะคนที่ไม่กดพร้อมออกจากห้อง + บันทึกเวลาเตะ (ให้เครื่องเขาเด้งออกไปล็อบบี้)
+    const now=Date.now();
+    const kicked=Object.assign({},data.kicked||{});
+    notReady.forEach(([id,p])=>{ updates['players.'+id]=firebase.firestore.FieldValue.delete(); kicked[p.name]=now; });
+    updates.kicked=kicked;
+    // แจกไพ่ให้คนที่พร้อม (สูงสุด 4 คน)
+    const playEntries=ready.slice(0,4);
+    const deck=shuffle(makeDeck());
+    const deals={};
+    playEntries.forEach(([id,p],i)=>{
+      deals[p.name]=deck.slice(i*13,(i+1)*13);
+      if(p.isSpectator) updates['players.'+id+'.isSpectator']=false; // โปรโมทกลับมาเล่น
+    });
+    updates.deals=deals;
+    await db.collection('rooms').doc(roomId).update(updates);
+  }catch(e){ console.warn('finalizeReadyCheck',e); }
+  finalizingReady=false;
+}
+
+// แสดงหน้ายืนยันความพร้อม + นับถอยหลัง
+function renderReadyCheck(){
+  const cur=document.querySelector('.screen.active')?.id;
+  if(cur!=='lobby') showScreen('lobby');
+  document.getElementById('lob-code').textContent=roomId;
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-claim-host').style.display='none';
+  const rb=document.getElementById('btn-ready-confirm');
+  const draw=()=>{
+    if((roomData.status||'')!=='readycheck'){ if(readyTick){clearInterval(readyTick);readyTick=null;} return; }
+    const players=Object.entries(roomData.players||{}).filter(([id,p])=>!p.isQueue);
+    const left=Math.max(0,30-Math.floor((Date.now()-(roomData.readyAt||Date.now()))/1000));
+    const meP=(roomData.players||{})[myId]||Object.values(roomData.players||{}).find(p=>p.name===myName)||{};
+    const iAmReady=!!meP.ready;
+    document.getElementById('lob-cnt').textContent=players.length+' คน';
+    document.getElementById('lob-status').innerHTML=`⏰ ยืนยันความพร้อม! เหลือ <b style="color:#f0c040;font-size:20px">${left}s</b><br><span style="font-size:11px;color:#c8a860">ใครไม่กด "พร้อม" ใน 30 วิ จะถูกนำออกจากห้องอัตโนมัติ</span>`;
+    document.getElementById('lob-players').innerHTML=players.map(([id,p])=>`
+      <div class="pl-item">
+        <div class="pl-av">${p.avatar||'🎴'}</div>
+        <div class="pl-name">${p.name}${p.name===myName?' (คุณ)':''}${p.isHost?' 🎯':''}</div>
+        <div class="pl-badge ${p.ready?'b-host':'b-wait'}">${p.ready?'✅ พร้อม':'⏳ รอ...'}</div>
+      </div>`).join('');
+    rb.style.display=iAmReady?'none':'block';
+    rb.textContent=iAmReady?'✅ พร้อมแล้ว':'✅ ฉันพร้อม!';
+    // host เป็นคนสรุป: หมดเวลา หรือ ทุกคนพร้อม
+    const allReady=players.length>=2&&players.every(([id,p])=>p.ready);
+    if(meP.isHost&&(left<=0||allReady)) finalizeReadyCheck();
+  };
+  draw();
+  if(readyTick) clearInterval(readyTick);
+  readyTick=setInterval(draw,1000);
 }
 
 // ── START ROUND ──
