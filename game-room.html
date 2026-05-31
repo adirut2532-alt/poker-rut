@@ -955,7 +955,8 @@ function listen(){
       const isHost=inheritedHost||(!alreadyHasHost&&activePlayers.length===0);
       const updates={};
       const st=roomData.status||'lobby';
-      const isPassive=inheritedSpec||activePlayers.length>=4||(st==='playing'&&dupEntries.length===0);
+      // เป็นผู้ชมเฉพาะตอนโต๊ะเต็ม (4 คน) เท่านั้น — ถ้ายังไม่เต็มให้เป็นผู้เล่นเลย (รอบหน้าได้เล่น)
+      const isPassive=inheritedSpec||activePlayers.length>=4;
       // ลบ entry เก่าที่ชื่อซ้ำทั้งหมด
       dupEntries.forEach(([id])=>{ updates[`players.${id}`]=firebase.firestore.FieldValue.delete(); });
       updates[`players.${myId}`]={
@@ -987,14 +988,18 @@ function listen(){
     } else if(st==='playing'){
       const hasMycards=!!(roomData.deals||{})[myName]?.length;
       if(!hasMycards){
-        // ยังไม่มีไพ่ (เพิ่งเข้า/กลับเข้ามากลางรอบ) → นั่งดูรอบนี้ รอบหน้าได้เล่น
+        // ยังไม่มีไพ่ (เพิ่งเข้า/กลับเข้ามากลางรอบ)
         if(cur!=='game') showScreen('game');
         initChat();
+        const meP=(roomData.players||{})[myId]||{};
+        const isSpec=!!meP.isSpectator;
         document.getElementById('game-body').innerHTML=`
           <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:24px;">
-            <div style="font-size:36px">👀</div>
-            <div style="font-size:15px;color:#f0c040;font-weight:800">นั่งดูรอบนี้อยู่</div>
-            <div style="font-size:12px;color:#c8a860;line-height:1.5">รอบนี้แจกไพ่ไปแล้ว<br>คุณจะได้เล่นในรอบถัดไปอัตโนมัติ</div>
+            <div style="font-size:36px">${isSpec?'👀':'⏳'}</div>
+            <div style="font-size:15px;color:#f0c040;font-weight:800">${isSpec?'นั่งดูอยู่ (โต๊ะเต็ม)':'อยู่ในเกมแล้ว ✓'}</div>
+            <div style="font-size:12px;color:#c8a860;line-height:1.5">${isSpec
+              ?'โต๊ะเต็ม 4 คน<br>มีที่ว่างเมื่อไรจะได้เล่นอัตโนมัติ'
+              :'รอบนี้แจกไพ่ไปแล้ว<br>รอบถัดไปได้เล่นเลยอัตโนมัติ'}</div>
           </div>`;
       } else if(cur==='lobby'||cur==='result'){
         resultsShown=false;
