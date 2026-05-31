@@ -1593,6 +1593,18 @@ let resultsShown=false;
 let battleShown=false;
 let battleTimers=[];
 
+// ── 🔊 TEXT-TO-SPEECH (Thai Female Voice) ──
+function announceText(text){
+  if(typeof responsiveVoice==='undefined'){
+    const s=document.createElement('script');
+    s.src='https://code.responsivevoice.org/responsivevoice.js';
+    s.onload=()=>responsiveVoice.speak(text,'Thai Female',{rate:1});
+    document.head.appendChild(s);
+  }else{
+    responsiveVoice.speak(text,'Thai Female',{rate:1});
+  }
+}
+
 function showResults(){
   if(resultsShown) return;
   resultsShown=true;
@@ -1667,6 +1679,7 @@ function showResults(){
 function renderResults(players,handsById,scores){  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1)+' • x'+(roomData.rate||1)+((roomData.commission||0)>0?' • คอม '+roomData.commission+'%':'');
   const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
   const darby=scores.find(s=>s.isDarby);
+  if(darby) announceText('ดาร์บี้สิคร้าบ');
   const darbyHTML=darby?`<div class="darby-banner">🏆 ดาร์บี้! ${darby.avatar} ${darby.name} กินรวดทุกกอง ทุกคน! (คะแนน x4)</div>`:'';
   document.getElementById('res-list').innerHTML=darbyHTML+sorted.map((s,i)=>{
     const medals=['🥇','🥈','🥉','4️⃣'];
@@ -1767,7 +1780,7 @@ function showBattle(players,handsById,scores){
       sec?.scrollIntoView({behavior:'smooth',block:'center'});
       if(i<matchups.length&&matchups[i].talu){
         const tb=document.getElementById(`talu-${i}`);
-        battleTimers.push(setTimeout(()=>tb?.classList.add('shown'),400));
+        battleTimers.push(setTimeout(()=>{tb?.classList.add('shown');announceText('ทะลุสิคร้าบ');},400));
       }
     },delay));
   }
