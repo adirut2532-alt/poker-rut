@@ -1495,8 +1495,8 @@ function showResults(){
   db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});
   roomData.scores=newScores; // อัปเดต local ทันที เพื่อให้คะแนนสะสมแสดงรวมรอบนี้เลย (ไม่ต้องรอ snapshot)
 
-  // ── อัปเดตยอดชิบของตัวเองลง Firestore ทุกจบตา (กันยอดหายตอนออก) ──
-  settleMyChips(scores);
+  // ── settle ชิบให้ wallet ตรงกับคะแนนสะสมจริงเสมอ (กันเพี้ยน/หักซ้ำ) ──
+  if(myId in newScores) settleMyChips(newScores[myId]);
 
   // ── บันทึกประวัติไพ่ของรอบนี้ลงในห้อง (อยู่จนกว่าห้องจะถูกลบ) ──
   saveRoundToHistory(players,handsById,scores);
@@ -1647,20 +1647,19 @@ function showScoreboard(){
   alert('📊 คะแนนสะสม\n'+pl.sort((a,b)=>(sc[b.id]||0)-(sc[a.id]||0)).map(p=>`${p.avatar} ${p.name}: ${sc[p.id]>=0?'+':''}${sc[p.id]||0}`).join('\n'));
 }
 
-async function settleMyChips(scores){
-  if(!myMemberId) return;                 // ไม่มี member link (session เก่า) → ข้าม
-  const round=roomData.round||1;
-  const key='gr_settled_'+roomId+'_'+round;
-  if(sessionStorage.getItem(key)) return; // จบตานี้อัปเดตไปแล้วในเครื่องนี้
-  const mine=scores.find(s=>s.name===myName);
-  if(!mine) return;
-  const delta=mine.roundScore||0;         // ชิบที่ได้/เสียตานี้ (คูณอัตรา+หักคอมแล้ว)
-  sessionStorage.setItem(key,'1');        // กันอัปเดตซ้ำตานี้
-  if(delta===0) return;
+async function settleMyChips(myCumScore){
+  if(!myMemberId) return;                       // ไม่มี member link → ข้าม
+  if(typeof myCumScore!=='number') return;
+  // เครดิตที่จ่ายเข้า wallet ไปแล้วสำหรับห้องนี้ (เก็บใน Firestore — กันเพี้ยนข้ามแท็บ/reload)
+  const credited=(roomData.credited||{})[myId]||0;
+  const toAdd=Math.round((myCumScore-credited)*100)/100; // จ่ายเฉพาะส่วนต่าง
+  if(toAdd===0) return;
   try{
     await db.collection('members').doc(myMemberId).update({
-      chips:firebase.firestore.FieldValue.increment(delta)
+      chips:firebase.firestore.FieldValue.increment(toAdd)
     });
+    await db.collection('rooms').doc(roomId).update({['credited.'+myId]:myCumScore}).catch(()=>{});
+    roomData.credited=roomData.credited||{}; roomData.credited[myId]=myCumScore;
     const snap=await db.collection('members').doc(myMemberId).get();
     if(snap.exists){ myChips=Math.round((snap.data().chips||0)*100)/100; sessionStorage.setItem('gr_chips', myChips); }
   }catch(e){}
