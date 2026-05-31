@@ -1728,16 +1728,23 @@ function showBattle(players,handsById,scores){
       const bBadge=r.winner<0?'fwin':r.winner>0?'flose':'fdraw';
       const aTxt=r.winner>0?'ชนะ':r.winner<0?'แพ้':'เสมอ';
       const bTxt=r.winner<0?'ชนะ':r.winner>0?'แพ้':'เสมอ';
+      // ─ เพิ่มคะแนนแต่ละชั้น ─
+      const aScore=evalHand(r.aCards);
+      const bScore=evalHand(r.bCards);
+      const aScoreTxt=`${aScore.name}${aScore.bonus?` +${aScore.bonus}`:''}`;
+      const bScoreTxt=`${bScore.name}${bScore.bonus?` +${bScore.bonus}`:''}`;
       return`<div class="fight-line">
         <div class="fight-p">
           <div class="fight-cards">${r.aCards.map(fightCardHTML).join('')}</div>
           <div class="fight-hn">${r.aName||'-'}</div>
+          <div style="font-size:10px;color:#c8a860;margin-bottom:4px">${aScoreTxt}</div>
           <div class="rbadge ${aBadge}">${aTxt}</div>
         </div>
         <div class="fight-vs">${rowLabel[r.key]}</div>
         <div class="fight-p">
           <div class="fight-cards">${r.bCards.map(fightCardHTML).join('')}</div>
           <div class="fight-hn">${r.bName||'-'}</div>
+          <div style="font-size:10px;color:#c8a860;margin-bottom:4px">${bScoreTxt}</div>
           <div class="rbadge ${bBadge}">${bTxt}</div>
         </div>
       </div>`;
