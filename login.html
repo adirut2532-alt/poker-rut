@@ -87,6 +87,9 @@ input[type="password"]{padding-right:48px;}
     <div class="err" id="err-manual"></div>
 
     <div class="links"><a href="register.html">ยังไม่มีบัญชี? สมัครสมาชิก →</a></div>
+    <div style="text-align:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,180,80,.1);">
+      <a href="admin.html" style="font-size:11px;color:rgba(255,180,80,.35);text-decoration:none;font-weight:600;">⚙️ Admin</a>
+    </div>
   </div>
 </div>
 
@@ -107,20 +110,27 @@ firebase.initializeApp({
 });
 const db=firebase.firestore();
 const auth=firebase.auth();
+const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-// ถ้า Google user login อยู่แล้ว → เข้าเลย
+// ผู้ใช้ Google ที่ล็อกอินค้างอยู่ + มี member → เข้าเลย
 auth.onAuthStateChanged(async user=>{
   if(!user)return;
-  document.getElementById('loading').classList.add('show');
   try{
     const snap=await db.collection('members').doc(user.uid).get();
-    if(snap.exists) redirectLobby(snap.data(),user.uid);
-    else{
-      // มี Google auth แต่ไม่มี member doc → ไปสมัครก่อน
-      await auth.signOut();
-      document.getElementById('loading').classList.remove('show');
-    }
-  }catch(e){document.getElementById('loading').classList.remove('show');}
+    if(snap.exists){document.getElementById('loading').classList.add('show');redirectLobby(snap.data(),user.uid);}
+  }catch(e){}
+});
+
+// รับผลหลังกลับจาก signInWithRedirect (มือถือ)
+auth.getRedirectResult().then(async r=>{
+  if(!r||!r.user)return;
+  document.getElementById('loading').classList.add('show');
+  const snap=await db.collection('members').doc(r.user.uid).get();
+  if(!snap.exists){await auth.signOut();window.location.href='register.html';}
+  else redirectLobby(snap.data(),r.user.uid);
+}).catch(e=>{
+  document.getElementById('loading').classList.remove('show');
+  showErr('google','Google ล้มเหลว: '+(e.code||e.message||e));
 });
 
 function togglePw(){const i=document.getElementById('inp-pass');i.type=i.type==='password'?'text':'password';}
@@ -135,19 +145,23 @@ async function signInGoogle(){
   clearErr('google');
   const btn=document.getElementById('btn-google');
   btn.disabled=true;document.getElementById('btn-google-text').textContent='กำลังเชื่อมต่อ...';
+  const provider=new firebase.auth.GoogleAuthProvider();
   try{
-    const r=await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    const snap=await db.collection('members').doc(r.user.uid).get();
-    if(!snap.exists){
-      // ยังไม่ได้สมัคร → ไปหน้าสมัคร
-      await auth.signOut();
-      window.location.href='register.html';
-    }else{
-      redirectLobby(snap.data(),r.user.uid);
+    if(isMobile){
+      // มือถือ: ใช้ redirect (popup โดนบล็อก) — หน้าจะ reload แล้ว getRedirectResult รับต่อ
+      await auth.signInWithRedirect(provider);
+      return;
     }
+    const r=await auth.signInWithPopup(provider);
+    const snap=await db.collection('members').doc(r.user.uid).get();
+    if(!snap.exists){await auth.signOut();window.location.href='register.html';}
+    else redirectLobby(snap.data(),r.user.uid);
   }catch(e){
-    if(e.code==='auth/popup-blocked'){await auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());}
-    else if(e.code!=='auth/popup-closed-by-user') showErr('google','เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่');
+    if(e.code==='auth/popup-blocked'||e.code==='auth/cancelled-popup-request'){
+      try{await auth.signInWithRedirect(provider);return;}catch(e2){showErr('google','Google: '+(e2.code||e2));}
+    }else if(e.code!=='auth/popup-closed-by-user'){
+      showErr('google','Google ล้มเหลว: '+(e.code||e.message||e));
+    }
     btn.disabled=false;document.getElementById('btn-google-text').textContent='เข้าสู่ระบบด้วย Google';
   }
 }

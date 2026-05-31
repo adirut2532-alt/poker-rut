@@ -216,9 +216,13 @@ buildPicker('av-grid','selAv',`function(el,av){selAv=av;document.querySelectorAl
 buildPicker('av-grid-modal','selAvModal',`function(el,av){selAvModal=av;document.querySelectorAll('#av-grid-modal .av-btn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');}`);
 
 // If already logged in, go to lobby
+const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 auth.onAuthStateChanged(user=>{
   if(user) handleExistingGoogle(user);
 });
+// รับผลหลังกลับจาก signInWithRedirect (มือถือ)
+auth.getRedirectResult().then(r=>{ if(r&&r.user) processGoogleUser(r.user); })
+  .catch(e=>{ showErr('google','Google ล้มเหลว: '+(e.code||e.message||e)); });
 
 async function handleExistingGoogle(user){
   try{
@@ -226,6 +230,21 @@ async function handleExistingGoogle(user){
     if(snap.exists) redirectLobby(snap.data(),user.uid);
     // else: new Google user, will be handled after explicit sign-in
   }catch(e){}
+}
+
+// คนใหม่ → เลือกอวตาร / คนเก่า → เข้าเลย
+async function processGoogleUser(user){
+  gUser=user;
+  try{
+    const snap=await db.collection('members').doc(user.uid).get();
+    if(snap.exists){ redirectLobby(snap.data(),user.uid); }
+    else{
+      document.getElementById('gu-info').innerHTML=
+        `<div><div class="gu-name">${user.displayName||'ผู้ใช้ใหม่'}</div><div class="gu-email">${user.email||''}</div></div>`;
+      document.getElementById('modal-name').value=user.displayName||'';
+      document.getElementById('av-modal').classList.add('open');
+    }
+  }catch(e){ showErr('google','โหลดข้อมูลไม่ได้: '+(e.code||e.message||e)); }
 }
 
 function togglePw(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
@@ -245,24 +264,16 @@ async function signInGoogle(){
   clearErr('google');
   const btn=document.getElementById('btn-google');
   btn.disabled=true;document.getElementById('btn-google-text').textContent='กำลังเชื่อมต่อ...';
+  const provider=new firebase.auth.GoogleAuthProvider();
   try{
-    const result=await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    gUser=result.user;
-    const snap=await db.collection('members').doc(gUser.uid).get();
-    if(snap.exists){
-      redirectLobby(snap.data(),gUser.uid); // คนเก่า → เข้าเลย
-    }else{
-      // คนใหม่ → เลือกอวตาร
-      document.getElementById('gu-info').innerHTML=
-        `<div><div class="gu-name">${gUser.displayName||'ผู้ใช้ใหม่'}</div><div class="gu-email">${gUser.email||''}</div></div>`;
-      document.getElementById('modal-name').value=gUser.displayName||'';
-      document.getElementById('av-modal').classList.add('open');
-    }
+    if(isMobile){ await auth.signInWithRedirect(provider); return; }
+    const result=await auth.signInWithPopup(provider);
+    processGoogleUser(result.user);
   }catch(e){
-    if(e.code==='auth/popup-blocked'){
-      await auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+    if(e.code==='auth/popup-blocked'||e.code==='auth/cancelled-popup-request'){
+      try{await auth.signInWithRedirect(provider);return;}catch(e2){showErr('google','Google: '+(e2.code||e2));}
     }else if(e.code!=='auth/popup-closed-by-user'){
-      showErr('google','เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่');
+      showErr('google','Google ล้มเหลว: '+(e.code||e.message||e));
     }
     btn.disabled=false;document.getElementById('btn-google-text').textContent='สมัครด้วย Google';
   }
