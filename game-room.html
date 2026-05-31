@@ -603,6 +603,7 @@ html,body{
     </div>
     <div id="lob-status" style="font-size:13px;color:#c8a860;text-align:center;">รอ Host กด "เริ่มเกม"</div>
     <button id="btn-start" class="abtn abtn-ready" onclick="hostStart()" style="display:none;max-width:360px;width:100%">🎮 เริ่มเกม!</button>
+    <button id="btn-claim-host" class="abtn abtn-auto" onclick="claimHost()" style="display:none;max-width:360px;width:100%;margin-top:4px">👑 ขอเป็นหัวห้อง (ถ้า Host ไม่อยู่)</button>
     <button class="abtn abtn-clear" onclick="openHistory()" style="max-width:360px;width:100%;margin-top:4px">📜 ประวัติไพ่ย้อนหลัง</button>
     <button class="abtn abtn-clear" onclick="leaveRoom()" style="max-width:360px;width:100%;margin-top:4px">← ออก</button>
   </div>
@@ -1060,8 +1061,26 @@ function renderLobby(){
     document.getElementById('lob-status').textContent=`กด "เริ่มเกม" เมื่อพร้อม (${players.length} คน)`;
   } else {
     btn.style.display='none';
-    document.getElementById('lob-status').textContent='รอ Host กด "เริ่มเกม"';
+    document.getElementById('lob-status').textContent='รอ Host กด "เริ่มเกม" — หรือกดขอเป็นหัวห้องถ้า Host ไม่อยู่';
   }
+  const claimBtn=document.getElementById('btn-claim-host');
+  if(claimBtn) claimBtn.style.display=amHost?'none':'block';
+}
+
+async function claimHost(){
+  if(!confirm('ขอเป็นหัวห้องแทน?\n\nใช้เมื่อ Host เดิมไม่อยู่ — คุณจะกด "เริ่มเกม" ได้เอง'))return;
+  try{
+    const snap=await db.collection('rooms').doc(roomId).get();
+    const data=snap.data()||{};
+    const entries=Object.entries(data.players||{});
+    const meE=entries.find(([id])=>id===myId)||entries.find(([id,p])=>p.name===myName);
+    if(!meE){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}
+    const updates={};
+    entries.forEach(([id,p])=>{ if(p.isHost) updates['players.'+id+'.isHost']=false; }); // ปลด host เดิม
+    updates['players.'+meE[0]+'.isHost']=true; // ตั้งเราเป็น host
+    await db.collection('rooms').doc(roomId).update(updates);
+    isHost=true;
+  }catch(e){alert('ไม่สำเร็จ: '+(e.message||e));}
 }
 
 async function hostStart(){
