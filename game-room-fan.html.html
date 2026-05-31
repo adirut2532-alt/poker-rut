@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3 กอง กาญ — ห้องเกม (พัดพรีเมียม)</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:'Kanit',sans-serif;background:radial-gradient(ellipse at 50% 40%,#1a5c1a 0%,#0d2d0d 70%,#081808 100%);color:#fff8e8;height:100%;overflow:hidden;user-select:none;}
+.screen{display:none;width:100vw;height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+.hdr{background:rgba(5,20,5,.95);border-bottom:1px solid rgba(255,220,80,.25);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.hdr-title{font-size:15px;font-weight:800;color:#f0c040;flex:1;}
+.hdr-room{font-size:11px;color:#c8a860;}
+.hdr-btn{background:rgba(0,0,0,.3);border:1px solid rgba(255,220,80,.2);color:#f0c040;border-radius:8px;padding:5px 10px;font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+#lobby{padding:20px;gap:14px;align-items:center;overflow-y:auto;}
+.lobby-code{background:rgba(0,0,0,.4);border-radius:16px;padding:16px 24px;border:2px solid rgba(255,220,80,.3);text-align:center;width:100%;max-width:360px;}
+.lobby-code-lbl{font-size:11px;color:#c8a860;font-weight:700;letter-spacing:.5px;}
+.lobby-code-val{font-size:32px;font-weight:900;color:#f0c040;letter-spacing:4px;}
+.players-list{background:rgba(0,0,0,.3);border-radius:14px;border:1px solid rgba(255,220,80,.2);overflow:hidden;width:100%;max-width:360px;}
+.pl-header{background:rgba(255,220,80,.15);padding:9px 14px;font-size:12px;font-weight:800;color:#f0c040;letter-spacing:.5px;display:flex;justify-content:space-between;}
+.pl-item{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,220,80,.08);}
+.pl-item:last-child{border-bottom:none;}
+.pl-av{font-size:24px;}
+.pl-name{font-size:14px;font-weight:700;flex:1;}
+.pl-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;}
+.b-host{background:rgba(32,128,200,.3);color:#60c8ff;}
+.b-wait{background:rgba(200,160,40,.2);color:#f0c040;}
+#game{flex-direction:column;}
+.game-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.round-table{flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding:24px 20px;min-height:150px;overflow:hidden;}
+.oval-table{position:relative;width:96%;height:88%;background:radial-gradient(circle at 50% 45%,#0c4722 0%,#052611 70%,#021308 100%);border-radius:140px;border:13px solid #3d1a04;box-shadow:inset 0 0 44px rgba(0,0,0,.8),0 12px 36px rgba(0,0,0,.7),0 0 0 3px #d4af37;display:flex;align-items:center;justify-content:center;}
+.table-center{display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.table-felt{display:flex;align-items:center;justify-content:center;background:none;border:none;}
+.table-logo{font-size:13px;color:rgba(212,175,55,.16);font-weight:900;letter-spacing:7px;text-transform:uppercase;}
+.opp-box{position:absolute;background:rgba(15,22,36,.88);border-radius:16px;padding:8px 11px;border:1px solid rgba(212,175,55,.22);display:flex;flex-direction:column;align-items:center;gap:4px;min-width:92px;max-width:120px;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.6);}
+.opp-box.pos-top{top:-22px;left:50%;transform:translateX(-50%);}
+.opp-box.pos-left{left:-12px;top:42%;transform:translateY(-50%);}
+.opp-box.pos-right{right:-12px;top:42%;transform:translateY(-50%);}
+.opp-box.side{min-width:88px;max-width:104px;}
+.opp-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,rgba(255,220,80,.3),rgba(200,140,20,.2));border:2.5px solid rgba(255,220,80,.5);display:flex;align-items:center;justify-content:center;font-size:24px;}
+.opp-av.sm{width:32px;height:32px;font-size:18px;}
+.opp-nm{font-size:11px;font-weight:800;color:#fff8e8;text-align:center;}
+.opp-chip{display:flex;align-items:center;gap:3px;background:rgba(0,0,0,.4);border-radius:7px;padding:2px 7px;font-size:11px;font-weight:900;color:#f0c040;border:1px solid rgba(255,220,80,.2);}
+.opp-cards-h{display:flex;flex-direction:column;gap:2px;align-items:center;}
+.opp-row-h{display:flex;gap:2px;}
+.opp-card-h{width:16px;height:24px;border-radius:3px;background:linear-gradient(145deg,#2a6bd4,#1a4ba0);border:1px solid rgba(255,255,255,.25);flex-shrink:0;}
+.opp-cards-v{display:flex;gap:2px;}
+.opp-col{display:flex;flex-direction:column;gap:2px;}
+.opp-card-v{width:12px;height:18px;border-radius:2px;background:linear-gradient(145deg,#2a6bd4,#1a4ba0);border:1px solid rgba(255,255,255,.2);flex-shrink:0;}
+@keyframes cardShuffle{0%{transform:rotate(-4deg) translateY(0);}50%{transform:rotate(4deg) translateY(-2px);}100%{transform:rotate(-2deg) translateY(1px);}}
+.shuffle{animation:cardShuffle .9s ease-in-out infinite alternate;}
+.ready-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#f0a820,#c07010);color:#fff;font-size:11px;font-weight:900;padding:4px 10px;border-radius:8px;z-index:10;box-shadow:0 3px 10px rgba(240,168,32,.6);white-space:nowrap;}
+.table-divider{height:2px;flex-shrink:0;position:relative;z-index:30;background:linear-gradient(90deg,transparent,rgba(255,220,80,.4),transparent);}
+.my-hand{background:linear-gradient(180deg,rgba(5,20,5,.98),rgba(3,12,3,1));border-top:2px solid rgba(255,220,80,.3);padding:8px 10px;display:flex;flex-direction:column;flex-shrink:0;padding-bottom:calc(34px + env(safe-area-inset-bottom,16px));position:relative;z-index:30;}
+.my-info{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.my-av{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,rgba(255,220,80,.35),rgba(200,140,20,.25));border:2.5px solid rgba(255,220,80,.65);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 2px 10px rgba(255,200,60,.25);flex-shrink:0;}
+.my-nm{font-size:17px;font-weight:900;color:#f0c040;flex:1;}
+.my-chip{font-size:13px;color:#ffd86a;font-weight:700;}
+.my-left{font-size:12px;color:#c8a860;font-weight:700;margin-left:auto;}
+.arr-row{display:flex;align-items:stretch;gap:5px;margin-bottom:4px;}
+.row-st{width:26px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.row-chk{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.25);}
+.row-chk.ok{background:rgba(32,200,80,.25);border-color:rgba(32,200,80,.6);color:#40e880;}
+.row-lbl{font-size:9px;color:#c8a860;font-weight:700;}
+.dz{flex:1;display:flex;flex-wrap:wrap;gap:3px;background:rgba(0,0,0,.2);border-radius:8px;padding:4px 5px;border:1.5px dashed rgba(255,255,255,.1);min-height:68px;align-content:flex-start;transition:border-color .15s,background .15s;}
+.dz.dz-hover{border-color:rgba(240,192,64,.6)!important;background:rgba(200,160,40,.1)!important;}
+.dz.dz-full{border-color:rgba(32,180,80,.4);background:rgba(20,140,60,.08);}
+.dz-tag{font-size:10px;font-weight:700;background:rgba(200,160,40,.25);color:#f0c040;border-radius:5px;padding:1px 6px;align-self:flex-end;border:1px solid rgba(200,160,40,.3);white-space:nowrap;margin-left:auto;}
+.big-card{width:54px;height:74px;background:#ffffff;border-radius:8px;position:relative;flex-shrink:0;font-weight:900;line-height:1;border:1px solid rgba(0,0,0,.18);box-shadow:0 2px 6px rgba(0,0,0,.35);touch-action:none;overflow:hidden;}
+.big-card .cr{position:absolute;top:5px;left:6px;font-size:20px;font-weight:900;line-height:.9;}
+.big-card .cs{position:absolute;bottom:6px;right:7px;font-size:26px;line-height:1;}
+.big-card.red-card{color:#d11f1f;}
+.big-card.black-card{color:#1a1a1a;}
+.big-card.dragging-source{opacity:.3;}
+.unplaced-area{background:rgba(0,0,0,.2);border-radius:10px;padding:5px;border:1px dashed rgba(255,220,80,.2);display:flex;flex-wrap:wrap;gap:4px;min-height:66px;margin-bottom:5px;align-content:flex-start;}
+.validate{font-size:11px;font-weight:700;text-align:center;padding:4px 8px;border-radius:8px;margin-bottom:4px;}
+.val-ok{background:rgba(32,180,80,.2);color:#40e880;border:1px solid rgba(32,180,80,.3);}
+.val-warn{background:rgba(240,160,0,.15);color:#f0c040;border:1px solid rgba(240,160,0,.3);}
+.actions{display:flex;gap:6px;padding-bottom:max(20px,env(safe-area-inset-bottom,20px));}
+.abtn{flex:1;padding:10px;border:none;border-radius:10px;font-family:'Kanit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+.abtn:active{transform:scale(.96);}
+.abtn-auto{background:rgba(255,255,255,.1);color:#fff8e8;border:1px solid rgba(255,255,255,.12);}
+.abtn-clear{background:rgba(255,255,255,.07);color:#c8a860;border:1px solid rgba(255,255,255,.08);}
+.abtn-ready{background:linear-gradient(160deg,#f0a820,#c07010);color:#fff;font-size:15px;font-weight:900;flex:2;box-shadow:0 4px 0 #804808,0 6px 20px rgba(240,168,32,.4);}
+.abtn-foul{background:linear-gradient(160deg,#e84040,#b02020);color:#fff;font-size:13px;font-weight:800;flex:2;box-shadow:0 3px 0 #700000;}
+.wait-box{display:flex;flex-direction:column;align-items:center;padding:14px;background:rgba(0,0,0,.35);border-radius:14px;gap:6px;}
+.wait-title{font-size:15px;font-weight:800;color:#f0c040;}
+.wait-sub{font-size:11px;color:#c8a860;}
+.wait-stats{display:flex;gap:10px;width:100%;max-width:300px;margin:8px 0 2px;}
+.wait-stat{flex:1;background:rgba(255,220,80,.08);border:1px solid rgba(255,220,80,.18);border-radius:12px;padding:10px 6px;text-align:center;}
+.ws-num{font-size:22px;font-weight:900;color:#f0c040;line-height:1.1;}
+.ws-lbl{font-size:10px;color:#c8a860;margin-top:3px;font-weight:700;}
+@keyframes dot{0%,80%,100%{transform:scale(0);}40%{transform:scale(1);}}
+.dots span{display:inline-block;width:7px;height:7px;border-radius:50%;background:#f0c040;margin:0 2px;animation:dot 1.4s infinite ease-in-out;}
+.dots span:nth-child(2){animation-delay:.2s;}
+.dots span:nth-child(3){animation-delay:.4s;}
+#battle{padding:0;overflow:hidden;}
+.battle-body{flex:1;overflow-y:auto;padding:10px 12px;}
+.b-section{background:rgba(10,40,10,.8);border-radius:14px;padding:10px 12px;margin-bottom:10px;border:1px solid rgba(255,220,80,.2);opacity:0;transform:scale(.96);transition:opacity .35s,transform .35s;}
+.b-section.shown{opacity:1;transform:scale(1);}
+.b-title{font-size:14px;font-weight:800;color:#f0c040;text-align:center;margin-bottom:8px;}
+.fight-line{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:8px;}
+.fight-p{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;}
+.fight-nm{font-size:12px;font-weight:800;text-align:center;color:#f0c040;}
+.fight-cards{display:flex;gap:2px;flex-wrap:nowrap;justify-content:center;width:100%;}
+.fight-card{flex:1 1 0;min-width:0;max-width:36px;aspect-ratio:5/7;background:#fff;border-radius:5px;position:relative;overflow:hidden;font-weight:900;box-shadow:0 2px 5px rgba(0,0,0,.3);border:1px solid rgba(0,0,0,.2);}
+.fight-card.rc{color:#d11f1f;}
+.fight-card.bc{color:#1a1a1a;}
+.fight-card .cr{position:absolute;top:2px;left:3px;font-size:13px;line-height:.9;}
+.fight-card .cs{position:absolute;bottom:2px;right:3px;font-size:15px;line-height:1;}
+.fight-hn{font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;background:rgba(200,160,40,.2);color:#f0c040;border:1px solid rgba(200,160,40,.3);}
+.fight-vs{font-size:13px;font-weight:900;color:#f0c040;align-self:center;padding-top:20px;}
+.rbadge{font-size:13px;font-weight:800;padding:4px 12px;border-radius:9px;white-space:nowrap;}
+.fwin{background:rgba(20,180,80,.25);color:#40e880;border:1px solid rgba(20,180,80,.4);}
+.flose{background:rgba(220,32,32,.2);color:#ff6060;border:1px solid rgba(220,32,32,.35);}
+.fdraw{background:rgba(200,160,40,.15);color:#f0c040;}
+.talu-banner{background:rgba(220,32,32,.2);border:2px solid #e03030;border-radius:12px;padding:10px 14px;margin:8px 0;font-size:15px;font-weight:800;color:#ff8080;text-align:center;opacity:0;transform:scale(.85);transition:opacity .3s,transform .3s cubic-bezier(.175,.885,.32,1.275);}
+.talu-banner.shown{opacity:1;transform:scale(1);}
+.darby-banner{background:linear-gradient(135deg,rgba(255,180,30,.28),rgba(255,90,0,.22));border:2.5px solid #ffb320;border-radius:14px;padding:14px 16px;margin:0 0 12px;font-size:17px;font-weight:900;color:#ffd24a;text-align:center;box-shadow:0 0 28px rgba(255,170,30,.4),inset 0 1px 0 rgba(255,255,255,.2);animation:darbyPulse 1.2s ease-in-out infinite;text-shadow:0 2px 8px rgba(0,0,0,.4);}
+@keyframes darbyPulse{0%,100%{transform:scale(1);box-shadow:0 0 28px rgba(255,170,30,.4),inset 0 1px 0 rgba(255,255,255,.2);}50%{transform:scale(1.025);box-shadow:0 0 40px rgba(255,190,40,.65),inset 0 1px 0 rgba(255,255,255,.3);}}
+.lowchip-warn{background:rgba(220,50,50,.18);border:1.5px solid rgba(220,50,50,.45);border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px;font-weight:700;color:#ff9a9a;text-align:center;line-height:1.4;}
+.score-flash{text-align:center;padding:14px 0 6px;opacity:0;transform:scale(.7);transition:opacity .4s,transform .4s cubic-bezier(.175,.885,.32,1.275);}
+.score-flash.shown{opacity:1;transform:scale(1);}
+.score-num{font-size:40px;font-weight:900;line-height:1;}
+.score-nm{font-size:12px;color:#c8a860;margin-bottom:4px;}
+.pos{color:#40e880;text-shadow:0 0 15px rgba(64,232,128,.4);}
+.neg{color:#ff6060;text-shadow:0 0 15px rgba(255,80,80,.3);}
+#result{padding:16px;overflow-y:auto;background:#0a1f0a;}
+.res-title{font-size:24px;font-weight:900;color:#f0c040;text-align:center;margin-bottom:14px;}
+.res-card{background:rgba(10,40,10,.8);border-radius:14px;padding:13px 15px;margin-bottom:8px;border:1px solid rgba(255,220,80,.2);}
+.res-nm{font-size:15px;font-weight:700;color:#fff8e8;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.res-total{font-size:22px;font-weight:900;}
+.res-rows{display:flex;gap:5px;font-size:11px;color:#c8a860;flex-wrap:wrap;margin-top:4px;}
+.res-tag{background:rgba(200,160,40,.15);padding:2px 7px;border-radius:6px;color:#f0c040;border:1px solid rgba(200,160,40,.3);}
+#ghost-card{position:fixed;pointer-events:none;z-index:9999;width:54px;height:74px;border-radius:8px;position:fixed;font-family:'Kanit',sans-serif;font-weight:900;line-height:1;border:2px solid #f0c040;background:#ffffff;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 0 3px rgba(240,192,64,.3);transform:rotate(6deg) scale(1.1);opacity:0;transition:opacity .1s;}
+#ghost-card.visible{opacity:1;}
+#ghost-card .cr{position:absolute;top:5px;left:6px;font-size:20px;line-height:.9;}
+#ghost-card .cs{position:absolute;bottom:6px;right:7px;font-size:26px;line-height:1;}
+.chat-fab{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));right:16px;width:48px;height:48px;border-radius:50%;background:linear-gradient(160deg,#f0a820,#c07010);border:none;cursor:pointer;z-index:50;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:transform .15s;}
+.chat-fab:active{transform:scale(.92);}
+.chat-badge{position:absolute;top:-2px;right:-2px;width:18px;height:18px;border-radius:50%;background:#e02020;color:#fff;font-size:10px;font-weight:900;display:none;align-items:center;justify-content:center;border:2px solid #0a1f0a;}
+.chat-badge.show{display:flex;}
+.chat-panel{position:fixed;bottom:0;right:0;left:0;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.3);z-index:60;display:flex;flex-direction:column;max-height:60vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);padding-bottom:env(safe-area-inset-bottom,0px);}
+.chat-panel.open{transform:translateY(0);}
+.chat-hdr{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(150,80,0,.1);flex-shrink:0;}
+.chat-hdr-title{font-size:15px;font-weight:800;color:#8a4000;}
+.chat-close{background:none;border:none;font-size:20px;cursor:pointer;color:#b87840;padding:4px;}
+.chat-msgs{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.chat-msg{display:flex;gap:8px;align-items:flex-end;}
+.chat-msg.mine{flex-direction:row-reverse;}
+.chat-av{font-size:20px;flex-shrink:0;}
+.chat-bubble{max-width:70%;padding:8px 12px;border-radius:14px;font-size:13px;font-weight:600;line-height:1.4;background:#f0ebe3;color:#1a0e00;border-bottom-left-radius:4px;}
+.chat-msg.mine .chat-bubble{background:linear-gradient(160deg,#f0a820,#c07010);color:#fff;border-bottom-left-radius:14px;border-bottom-right-radius:4px;}
+.chat-name{font-size:10px;color:#b87840;margin-bottom:2px;}
+.chat-time{font-size:10px;color:#c8a060;margin-top:2px;text-align:right;}
+.chat-sys{text-align:center;font-size:11px;color:#b87840;padding:2px 10px;background:#faf6f0;border-radius:10px;align-self:center;}
+.chat-input-bar{display:flex;gap:8px;padding:10px 14px 12px;border-top:1px solid rgba(150,80,0,.1);flex-shrink:0;}
+.chat-input{flex:1;padding:10px 14px;background:#faf6f0;border:1.5px solid rgba(150,80,0,.2);border-radius:22px;font-family:'Kanit',sans-serif;font-size:14px;color:#1a0e00;outline:none;}
+.chat-input:focus{border-color:#c07010;}
+.chat-send{width:40px;height:40px;border-radius:50%;background:linear-gradient(160deg,#f0a820,#c07010);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(192,112,16,.3);}
+.chat-send:active{transform:scale(.92);}
+.hist-modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;}
+.hist-modal.open{display:flex;}
+.hist-sheet{background:#0a1f0a;width:100%;max-width:480px;height:92vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,220,80,.25);box-shadow:0 -4px 24px rgba(0,0,0,.5);}
+.hist-hdr{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;flex-shrink:0;border-bottom:1px solid rgba(255,220,80,.15);}
+.hist-title{flex:1;font-size:16px;font-weight:900;color:#f0c040;text-align:center;}
+.hist-back,.hist-close{background:rgba(0,0,0,.3);border:1px solid rgba(255,220,80,.2);color:#f0c040;border-radius:8px;width:34px;height:34px;font-family:'Kanit',sans-serif;font-size:16px;font-weight:800;cursor:pointer;flex-shrink:0;}
+.hist-body{flex:1;overflow-y:auto;padding:12px;}
+.hist-actions{padding:10px 14px;border-top:1px solid rgba(255,220,80,.15);flex-shrink:0;padding-bottom:max(14px,env(safe-area-inset-bottom,14px));}
+.hist-empty{text-align:center;color:#c8a860;padding:40px 20px;font-size:14px;}
+.hist-item{background:rgba(10,40,10,.85);border-radius:12px;padding:11px 13px;margin-bottom:9px;border:1px solid rgba(255,220,80,.25);cursor:pointer;display:flex;align-items:center;gap:10px;transition:transform .12s,border-color .12s;}
+.hist-item:active{transform:scale(.98);border-color:rgba(255,220,80,.5);}
+.hist-item-rnd{width:42px;height:42px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,rgba(255,220,80,.25),rgba(200,140,20,.15));border:1px solid rgba(255,220,80,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f0c040;font-weight:900;line-height:1;}
+.hist-item-rnd small{font-size:8px;font-weight:700;color:#c8a860;}
+.hist-item-rnd b{font-size:17px;}
+.hist-item-mid{flex:1;min-width:0;}
+.hist-item-win{font-size:13px;font-weight:800;color:#fff8e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-item-time{font-size:10px;color:#c8a860;margin-top:2px;}
+.hist-item-go{color:#f0c040;font-size:18px;font-weight:900;flex-shrink:0;}
+.hist-shot{background:#08200a;border-radius:14px;padding:14px;}
+.hist-shot-hdr{text-align:center;font-size:14px;font-weight:900;color:#f0c040;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid rgba(255,220,80,.25);}
+.hist-pl{background:rgba(12,45,12,.9);border-radius:11px;padding:9px 10px;margin-bottom:8px;border:1px solid rgba(255,220,80,.18);}
+.hist-pl.foul{border-color:rgba(255,80,80,.4);}
+.hist-pl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.hist-pl-nm{font-size:14px;font-weight:800;color:#fff8e8;}
+.hist-pl-sc{font-size:18px;font-weight:900;}
+.hist-pl-sc.pos{color:#40e880;}
+.hist-pl-sc.neg{color:#ff6060;}
+.hist-rowline{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.hist-rowlbl{width:30px;flex-shrink:0;font-size:10px;font-weight:800;color:#c8a860;text-align:center;}
+.hist-rowcards{display:flex;gap:2px;flex-shrink:0;}
+.hist-rowhn{font-size:10px;color:#f0c040;font-weight:700;margin-left:4px;white-space:nowrap;}
+.hcard{width:24px;height:33px;background:#fff;border-radius:3px;position:relative;flex-shrink:0;font-weight:900;border:1px solid rgba(0,0,0,.2);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.hcard.rc{color:#d11f1f;}
+.hcard.bc{color:#1a1a1a;}
+.hcard .cr{position:absolute;top:1px;left:2px;font-size:11px;line-height:.9;}
+.hcard .cs{position:absolute;bottom:0px;right:2px;font-size:12px;line-height:1;}
+.hist-pl-tag{font-size:10px;color:#f0c040;margin-top:5px;font-weight:700;}
+.hist-foot{text-align:center;font-size:10px;color:#9a8850;margin-top:8px;}
+
+/* ── 📌 UI ไพ่พัดพรีเมียม (ปรับขนาดให้เด่นชัดและซ้อนทับแบบสัดส่วนสมจริงตามภาพตัวอย่าง) ── */
+.wood-tray{position:absolute;bottom:4px;width:92%;max-width:640px;height:20px;background:linear-gradient(to bottom, #723410 0%, #3d1b04 100%);border-radius:12px 12px 2px 2px;box-shadow:0 5px 12px rgba(0, 0, 0, 0.5);border-top:2px solid #a3521d;z-index:50;pointer-events:none;}
+.badge-holder{position:absolute;bottom:-14px;z-index:60;pointer-events:none;}
+.gold-badge{background:#1c1005;border:2px solid #c5a059;border-radius:16px;padding:3px 22px;color:#ffd9a8;font-size:15px;font-weight:700;box-shadow:0 4px 8px rgba(0,0,0,0.5), inset 0 0 5px rgba(197, 160, 89, 0.4);text-shadow:0 1px 2px rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;}
+.custom-card{position:absolute;width:64px;height:128px;background:#ffffff;border-radius:8px;box-shadow:-3px 4px 10px rgba(0, 0, 0, 0.38);border:1px solid rgba(0, 0, 0, 0.16);cursor:pointer;transform-origin:50% 190px;transition:transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, filter 0.2s ease;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:5px 6px;}
+.custom-card.red-suit{color:#d11f1f;}
+.custom-card.black-suit{color:#1a1a1a;}
+.custom-card .top-left{display:flex;flex-direction:column;align-items:center;line-height:0.95;}
+.custom-card .top-left .rank{font-size:22px;font-weight:900;letter-spacing:-1px;}
+.custom-card .top-left .suit{font-size:14px;margin-top:1px;}
+.custom-card .big-suit{align-self:flex-end;font-size:24px;line-height:1;margin-right:-1px;margin-bottom:-3px;}
+</style>
+</head>
+<body>
+<div id="ghost-card"><span class="cr"></span><span class="cs"></span></div>
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()" style="display:none">💬<div class="chat-badge" id="chat-badge">0</div></button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-hdr"><div class="chat-hdr-title">💬 แชทในห้อง</div><button class="chat-close" onclick="toggleChat()">✕</button></div>
+  <div class="chat-msgs" id="chat-msgs"><div class="chat-sys">เริ่มต้นการสนทนา...</div></div>
+  <div class="chat-input-bar"><input type="text" id="chat-input" class="chat-input" placeholder="พิมพ์ข้อความ..." maxlength="100" onkeydown="if(event.key==='Enter')sendChat()"><button class="chat-send" onclick="sendChat()">➤</button></div>
+</div>
+<div class="hist-modal" id="hist-modal">
+  <div class="hist-sheet">
+    <div class="hist-hdr"><button class="hist-back" id="hist-back" onclick="historyBack()" style="display:none">←</button><div class="hist-title" id="hist-title">📜 ประวัติไพ่ย้อนหลัง</div><button class="hist-close" onclick="closeHistory()">✕</button></div>
+    <div class="hist-body" id="hist-body"></div>
+    <div class="hist-actions" id="hist-actions" style="display:none"><button class="abtn abtn-ready" id="hist-save-btn" onclick="saveHistoryImage()" style="width:100%">💾 บันทึกรูปลงเครื่อง</button></div>
+  </div>
+</div>
+<div id="lobby" class="screen active">
+  <div class="hdr"><div class="hdr-title">🃏 3 กอง กาญ</div><div class="hdr-room" id="hdr-room">ห้อง —</div></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px;overflow-y:auto;">
+    <div class="lobby-code"><div class="lobby-code-lbl">ROOM CODE</div><div class="lobby-code-val" id="lob-code">—</div><div style="font-size:11px;color:#c8a860;margin-top:4px">แชร์โค้ดนี้ให้เพื่อนครับ</div></div>
+    <div class="players-list" style="max-width:360px;width:100%"><div class="pl-header"><span>👥 ผู้เล่นในห้อง</span><span id="lob-cnt">0 คน</span></div><div id="lob-players"></div></div>
+    <div id="lob-status" style="font-size:13px;color:#c8a860;text-align:center;">รอ Host กด "เริ่มเกม"</div>
+    <button id="btn-start" class="abtn abtn-ready" onclick="hostStart()" style="display:none;max-width:360px;width:100%">🎮 เริ่มเกม!</button>
+    <button id="btn-claim-host" class="abtn abtn-auto" onclick="claimHost()" style="display:none;max-width:360px;width:100%;margin-top:4px">👑 ขอเป็นหัวห้อง (ถ้า Host ไม่อยู่)</button>
+    <button id="btn-ready-confirm" class="abtn abtn-ready" onclick="confirmReady()" style="display:none;max-width:360px;width:100%;margin-top:4px">✅ ฉันพร้อม!</button>
+    <button class="abtn abtn-clear" onclick="openHistory()" style="max-width:360px;width:100%;margin-top:4px">📜 ประวัติไพ่ย้อนหลัง</button>
+    <button class="abtn abtn-clear" onclick="leaveRoom()" style="max-width:360px;width:100%;margin-top:4px">← ออก</button>
+  </div>
+</div>
+<div id="game" class="screen">
+  <div class="hdr"><button class="hdr-btn" onclick="confirmLeave()">🚪</button><div class="hdr-title">🃏 3 กอง กาญ</div><div class="hdr-room" id="game-room-lbl">รอบ 1</div><button class="hdr-btn" onclick="showScoreboard()">📊</button></div>
+  <div class="game-body" id="game-body"></div>
+</div>
+<div id="battle" class="screen">
+  <div class="hdr"><button class="hdr-btn" onclick="confirmLeave()">🚪</button><div class="hdr-title">⚔️ เปิดไพ่สู้</div><button class="hdr-btn" onclick="showScreen('battle');document.getElementById('battle-body').scrollTop=0">↑ บนสุด</button></div>
+  <div class="battle-body" id="battle-body"></div>
+</div>
+<div id="result" class="screen">
+  <div class="hdr"><div class="hdr-title">🏆 ผลรอบนี้</div><div class="hdr-room" id="res-round">รอบ 1</div></div>
+  <div style="flex:1;overflow-y:auto;padding:14px;">
+    <div class="res-title">🏆 ผลรอบนี้</div><div id="res-list"></div>
+    <div style="margin-top:8px;background:rgba(10,40,10,.6);border-radius:12px;padding:10px 14px;border:1px solid rgba(255,220,80,.2);"><div style="font-size:12px;font-weight:800;color:#f0c040;margin-bottom:8px">📊 คะแนนสะสม</div><div id="res-total"></div></div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:center;"><button class="abtn abtn-ready" id="btn-next" onclick="nextRound()" style="display:none;flex:1">▶ รอบต่อไป</button><button class="abtn abtn-clear" onclick="confirmLeave()" style="flex:0 0 auto;padding-left:20px;padding-right:20px;font-size:14px">🚪 ออก</button></div>
+    <button class="abtn abtn-clear" onclick="openHistory()" style="width:100%;margin-top:8px">📜 ประวัติไพ่ย้อนหลัง</button>
+  </div>
+</div>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyDUd1A3TyFBSSPGihdULbmnfTV6kvrOByY",authDomain:"poker-kan.firebaseapp.com",projectId:"poker-kan",storageBucket:"poker-kan.firebasestorage.app",messagingSenderId:"267226971967",appId:"1:267226971967:web:3ae1891c63194a97715d8a"});
+const db=firebase.firestore();
+const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RANK_VAL={};RANKS.forEach((r,i)=>RANK_VAL[r]=i+2);
+const SUIT_RANK={'♠':4,'♥':3,'♦':2,'♣':1},AVATARS=['🦊','🐯','🐻','🐼','🐶','🐱','🐸','🦁'];
+function cardScore(c){return c.val*10+SUIT_RANK[c.suit];}
+function isRed(c){return c.suit==='♥'||c.suit==='♦';}
+function makeDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({suit:s,rank:r,val:RANK_VAL[r]});return d;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function handSortKey(cards){
+  if(!cards||!cards.length)return 0;
+  const rc={};cards.forEach(c=>rc[c.val]=(rc[c.val]||0)+1);
+  const counts=Object.values(rc).sort((a,b)=>b-a);
+  let main=[],kick=[];
+  if(cards.length===3){
+    if(counts[0]===3)main=cards.slice();
+    else if(counts[0]===2){const pv=parseInt(Object.keys(rc).find(v=>rc[v]===2));main=cards.filter(c=>c.val===pv);kick=cards.filter(c=>c.val!==pv);}
+    else kick=cards.slice();
+  }else{
+    if(counts[0]===4){const qv=parseInt(Object.keys(rc).find(v=>rc[v]===4));main=cards.filter(c=>c.val===qv);kick=cards.filter(c=>c.val!==qv);}
+    else if(counts[0]===3&&counts[1]===2){const tv=parseInt(Object.keys(rc).find(v=>rc[v]===3)),pv=parseInt(Object.keys(rc).find(v=>rc[v]===2));main=[...cards.filter(c=>c.val===tv),...cards.filter(c=>c.val===pv)];}
+    else if(counts[0]===3){const tv=parseInt(Object.keys(rc).find(v=>rc[v]===3));main=cards.filter(c=>c.val===tv);kick=cards.filter(c=>c.val!==tv);}
+    else if(counts[0]===2&&counts[1]===2){const pvs=Object.keys(rc).filter(v=>rc[v]===2).map(Number).sort((a,b)=>b-a);main=cards.filter(c=>pvs.includes(c.val));kick=cards.filter(c=>!pvs.includes(c.val));}
+    else if(counts[0]===2){const pv=parseInt(Object.keys(rc).find(v=>rc[v]===2));main=cards.filter(c=>c.val===pv);kick=cards.filter(c=>c.val!==pv);}
+    else kick=cards.slice();
+  }
+  if(!(cards.length===5&&counts[0]===3&&counts[1]===2))main.sort((a,b)=>b.val-a.val);
+  kick.sort((a,b)=>b.val-a.val);
+  return [...main,...kick].reduce((acc,c)=>acc*100+c.val,0);
+}
+function straightKey(vals){
+  if(vals[0]===14&&vals[1]===13&&vals[2]===12&&vals[3]===11&&vals[4]===10)return 9999;
+  if(vals[0]===14&&vals[1]===5&&vals[2]===4&&vals[3]===3&&vals[4]===2)return 9998;
+  return vals[0];
+}
+function evalHand(cards){
+  if(!cards||!cards.length)return{rank:0,name:'',key:0,suit:0};
+  const n=cards.length,vals=cards.map(c=>c.val).sort((a,b)=>b-a),suits=cards.map(c=>c.suit);
+  const rc={};vals.forEach(v=>rc[v]=(rc[v]||0)+1);
+  const cnt=Object.values(rc).sort((a,b)=>b-a);
+  const fl=n===5&&suits.every(s=>s===suits[0]);
+  const isW=n===5&&vals[0]===14&&vals[1]===5&&vals[2]===4&&vals[3]===3&&vals[4]===2;
+  const isSt=n===5&&((vals[0]-vals[4]===4&&new Set(vals).size===5)||isW);
+  let rank=0,name='ไฮการ์ด';
+  if(n===3){if(cnt[0]===3){rank=5;name='ตอง';}else if(cnt[0]===2){rank=2;name='คู่';}else rank=1;}
+  else{
+    if(fl&&isSt){const bw=vals[0]===14&&vals[4]===10;rank=bw?9:8;name=bw?'ฟลัชหลวง':'สตรีทฟลัช';}
+    else if(cnt[0]===4){rank=7;name='สี่ตัว';}
+    else if(cnt[0]===3&&cnt[1]===2){rank=6;name='ฟูลเฮ้าส์';}
+    else if(fl){rank=5;name='ฟลัช';}
+    else if(isSt){rank=4;name='สตรีท';}
+    else if(cnt[0]===3){rank=3;name='ตอง';}
+    else if(cnt[0]===2&&cnt[1]===2){rank=2;name='สองคู่';}
+    else if(cnt[0]===2){rank=1;name='คู่';}
+  }
+  let key=rank===4&&n===5?straightKey(vals)*1e10+handSortKey(cards):handSortKey(cards);
+  const top=[...cards].sort((a,b)=>b.val-a.val||SUIT_RANK[b.suit]-SUIT_RANK[a.suit])[0];
+  return{rank,name,key,suit:top?SUIT_RANK[top.suit]:0};
+}
+function cmpH(a,b){
+  const ea=evalHand(a),eb=evalHand(b);
+  if(ea.rank!==eb.rank)return ea.rank>eb.rank?1:-1;
+  if(ea.key!==eb.key)return ea.key>eb.key?1:-1;
+  return ea.suit!==eb.suit?ea.suit>eb.suit?1:-1:0;
+}
+function validArr(f,m,b){
+  if(f.length!==3||m.length!==5||b.length!==5)return false;
+  function nr(cards){const h=evalHand(cards);return cards.length===3?h.rank===6?8:h.rank===5?3:h.rank===2?1:0:h.rank;}
+  const rf=nr(f),rm=nr(m),rb=nr(b);
+  if(rm<rf||rb<rm)return false;
+  if(rm===rf&&evalHand(m).key<evalHand(f).key)return false;
+  return!(rb===rm&&evalHand(b).key<evalHand(m).key);
+}
+function bonus(cards,row){
+  const h=evalHand(cards),vals=cards.map(c=>c.val).sort((a,b)=>b-a);
+  const rc={};vals.forEach(v=>rc[v]=(rc[v]||0)+1);
+  const isAAA=h.name==='ฟูลเฮ้าส์'&&rc[14]===3,isAA=h.name==='คู่'&&rc[14]===2;
+  if(row==='front')return h.name==='ตอง'?{pts:5,label:'ตอง+5'}:isAA?{pts:2,label:'AA+2'}:{pts:0,label:''};
+  if(row==='mid')return h.name==='ฟลัชหลวง'?{pts:16,label:'RF+16'}:h.name==='สตรีทฟลัช'?{pts:14,label:'SF+14'}:h.name==='สี่ตัว'?{pts:12,label:'4ตัว+12'}:isAAA?{pts:4,label:'AAA FH+4'}:h.name==='ฟูลเฮ้าส์'?{pts:2,label:'FH+2'}:{pts:0,label:''};
+  return h.name==='ฟลัชหลวง'?{pts:8,label:'RF+8'}:h.name==='สตรีทฟลัช'?{pts:7,label:'SF+7'}:h.name==='สี่ตัว'?{pts:6,label:'4ตัว+6'}:isAAA?{pts:2,label:'AAA FH+2'}:{pts:0,label:''};
+}
+function aiArrange(cards){
+  function score(h,row){const e=evalHand(h),b=bonus(h,row).pts;return e.rank*10000+b*1000+(e.key%1000);}
+  function combos(arr,k){if(k===0)return[[]];if(arr.length<k)return[];const[f,...r]=arr;return[...combos(r,k-1).map(c=>[f,...c]),...combos(r,k)];}
+  let best=-Infinity,bestA=null;
+  for(const back of combos(cards,5)){
+    const r1=cards.filter(c=>!back.includes(c));
+    for(const mid of combos(r1,5)){
+      const front=r1.filter(c=>!mid.includes(c));
+      if(front.length!==3||!validArr(front,mid,back))continue;
+      const sc=score(back,'back')*1000000+score(mid,'mid')*1000+score(front,'front');
+      if(sc>best){best=sc;bestA={front,mid,back};}
+    }
+  }
+  return bestA||{back:cards.slice(0,5),mid:cards.slice(5,10),front:cards.slice(10,13)};
+}
+function isDragonHand(h){const all=[...h.front,...h.mid,...h.back];return all.length===13&&new Set(all.map(c=>c.val)).size===13;}
+function calcScores(players,hands){
+  const n=players.length,h=k=>hands[k.name]||hands[k.id]||{front:[],mid:[],back:[],foul:false};
+  const sc=players.map(p=>({id:p.id,name:p.name,avatar:p.avatar,roundScore:0,bonusLabel:'',taluCount:0,isDarby:false,_tw:0,_pb:{}}));
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    const a=sc[i],b=sc[j],ha=h(a),hb=h(b);
+    if(ha.foul||hb.foul)continue;
+    let ps=0,qs=0,aw=0,bw=0;
+    ['front','mid','back'].forEach(row=>{
+      const cv=cmpH(ha[row]||[],hb[row]||[]),ba=bonus(ha[row]||[],row).pts,bb=bonus(hb[row]||[],row).pts;
+      if(cv>0){ps+=ba>0?ba:1;qs-=ba>0?ba:1;aw++;if(ba>0){const lbl=bonus(ha[row],row).label;a.bonusLabel=a.bonusLabel?a.bonusLabel+', '+lbl:lbl;}}
+      else if(cv<0){qs+=bb>0?bb:1;ps-=bb>0?bb:1;bw++;if(bb>0){const lbl=bonus(hb[row],row).label;b.bonusLabel=b.bonusLabel?b.bonusLabel+', '+lbl:lbl;}}
+    });
+    if(aw===3){ps*=2;qs*=2;a.taluCount++;a._tw++;a._pb[j]={talu:true};b._pb[i]={talu:true};}
+    else if(bw===3){ps*=2;qs*=2;b.taluCount++;b._tw++;b._pb[i]={talu:true};a._pb[j]={talu:true};}
+    a.roundScore+=ps;b.roundScore+=qs;
+  }
+  sc.forEach(s=>{if(h(s).foul)return;const opps=sc.filter(o=>o.id!==s.id&&!h(o).foul);if(opps.length>=2&&s._tw===opps.length)s.isDarby=true;});
+  if(sc.some(s=>s.isDarby))sc.forEach(s=>{s.roundScore*=4;});
+  sc.forEach(s=>{if(h(s).foul)s.bonusLabel='⚠️ ฟาว';});
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const a=sc[i],b=sc[j],fa=h(a).foul,fb=h(b).foul;if(fa&&fb)continue;if(fa){a.roundScore-=6;b.roundScore+=6;}else if(fb){b.roundScore-=6;a.roundScore+=6;}}
+  return sc;
+}
+function buildMatchups(players,hands){
+  const h=k=>hands[k.name]||hands[k.id]||{front:[],mid:[],back:[],foul:false},rows=[{key:'front',label:'หน้า'},{key:'mid',label:'กลาง'},{key:'back',label:'หลัง'}],matchups=[];
+  for(let i=0;i<players.length;i++)for(let j=i+1;j<players.length;j++){
+    const a=players[i],b=players[j],ha=h(a),hb=h(b);
+    const rowResults=rows.map(r=>{const ca=ha[r.key]||[],cb=hb[r.key]||[];let w=ha.foul&&!hb.foul?-1:hb.foul&&!ha.foul?1:ha.foul&&hb.foul?0:cmpH(ca,cb);return{key:r.key,label:r.label,aCards:ca,bCards:cb,aName:evalHand(ca).name,bName:evalHand(cb).name,winner:w};});
+    const aw=rowResults.filter(r=>r.winner>0).length,bw=rowResults.filter(r=>r.winner<0).length;
+    matchups.push({a,b,ha,hb,rowResults,aWins:aw,bWins:bw,talu:(aw===3||bw===3)&&!ha.foul&&!hb.foul,taluWinner:aw===3?a:bw===3?b:null});
+  }
+  return matchups;
+}
+let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null,myMemberId=null,readyTick=null,finalizingReady=false,arrangeTimeoutInterval=null,arrangeStartTime=null,myChips=0,hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false},roomData={},timerIds=[],resultsShown=false,battleShown=false,battleTimers=[];
+function uid(){return Math.random().toString(36).slice(2,7).toUpperCase();}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function playSound(t){const p={click:'sounds/click.mp3',deal:'sounds/card-deal.mp3',drop:'sounds/card-drop.mp3'};if(p[t]){const a=new Audio(p[t]);a.currentTime=0;a.play().catch(()=>{});}}
+function announceText(t){if('speechSynthesis'in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='th-TH';u.rate=1.1;u.pitch=1.0;window.speechSynthesis.speak(u);}}
+window.addEventListener('load',async()=>{
+  const p=new URLSearchParams(location.search);roomId=p.get('room');myId=p.get('myId');myName=decodeURIComponent(p.get('myName')||p.get('name')||'');
+  if(!roomId)roomId=sessionStorage.getItem('gr_room');if(!myId)myId=sessionStorage.getItem('gr_myId');if(!myName)myName=sessionStorage.getItem('gr_myName')||'';myMemberId=sessionStorage.getItem('gr_memberId')||'';myChips=parseInt(sessionStorage.getItem('gr_chips')||'0')||0;
+  if(myMemberId)db.collection('members').doc(myMemberId).get().then(s=>{if(s.exists){myChips=s.data().chips||0;sessionStorage.setItem('gr_chips',myChips);}}).catch(()=>{});
+  if(!roomId||!myName){location.href='lobby.html';return;}
+  if(!myId){try{const s=await db.collection('rooms').doc(roomId).get();if(s.exists){const pl=s.data().players||{},f=Object.entries(pl).find(([,x])=>x.name===myName);if(f){myId=f[0];myAvatar=f[1].avatar||'🎴';}}}catch(e){}if(!myId)myId=Math.random().toString(36).slice(2,7).toUpperCase();}
+  sessionStorage.setItem('gr_room',roomId);sessionStorage.setItem('gr_myId',myId);sessionStorage.setItem('gr_myName',myName);
+  try{const s=await db.collection('rooms').doc(roomId).get();if(s.exists){const pl=s.data().players||{},f=Object.entries(pl).find(([,x])=>x.name===myName);if(f){myId=f[0];myAvatar=f[1].avatar||myAvatar||'🦊';sessionStorage.setItem('gr_myId',myId);}}}catch(e){}
+  document.getElementById('lob-code').textContent=roomId;document.getElementById('hdr-room').textContent='ห้อง '+roomId;
+  try{const s=await db.collection('rooms').doc(roomId).get();if(s.exists){const d=s.data();roomData=d;if(d.status==='results'&&!resultsShown){roomData=d;battleShown=true;showResults();listen();return;}}}catch(e){}
+  listen();
+});
+function listen(){
+  if(unsub)unsub();
+  unsub=db.collection('rooms').doc(roomId).onSnapshot(async snap=>{
+    if(!snap.exists){alert('ห้องถูกปิดแล้ว');leaveRoom();return;}
+    roomData=snap.data();const players=roomData.players||{},me=players[myId];
+    if(!me&&myName){
+      const k=(roomData.kicked||{})[myName];if(k&&Date.now()-k<15000){if(unsub)unsub();alert('⏰ คุณไม่ได้กด "พร้อม" ทันเวลา จึงถูกนำออกจากห้อง');leaveRoom();return;}
+      const av=myAvatar||'🦊',dup=Object.entries(players).filter(([id,x])=>x.name===myName),inheritedHost=dup.some(([id,x])=>x.isHost),inheritedSpec=dup.length>0&&dup.every(([id,x])=>x.isSpectator);
+      const act=Object.values(players).filter(x=>!x.isSpectator&&!x.isQueue&&x.name!==myName),alreadyHasHost=act.some(x=>x.isHost),isHost=inheritedHost||(!alreadyHasHost&&act.length===0);
+      const updates={};const isPassive=inheritedSpec||act.length>=4;dup.forEach(([id])=>{updates[`players.${id}`]=firebase.firestore.FieldValue.delete();});
+      updates[`players.${myId}`]={name:myName,avatar:av,ready:false,isHost,score:0,isSpectator:isPassive,isQueue:false,joinedAt:Date.now()};
+      await db.collection('rooms').doc(roomId).update(updates);return;
+    }
+    if(me){myAvatar=me.avatar||myAvatar;isHost=me.isHost||false;}else{const b=Object.values(players).find(x=>x.name===myName);if(b)isHost=b.isHost||false;}
+    const st=roomData.status||'lobby',cur=document.querySelector('.screen.active')?.id;
+    if(st!=='readycheck'&&readyTick){clearInterval(readyTick);readyTick=null;}
+    if(st!=='playing'&&arrangeTimeoutInterval){clearInterval(arrangeTimeoutInterval);arrangeTimeoutInterval=null;arrangeStartTime=null;}
+    if(st==='lobby'||st==='waiting_start'){resultsShown=false;battleShown=false;if(cur!=='lobby')showScreen('lobby');renderLobby();}
+    else if(st==='readycheck'){resultsShown=false;renderReadyCheck();}
+    else if(st==='playing'){
+      const amHost=(roomData.players||{})[myId]?.isHost||Object.values(roomData.players||{}).find(x=>x.name===myName)?.isHost;
+      if(amHost){
+        if(arrangeStartTime===null)arrangeStartTime=Date.now();
+        if(!arrangeTimeoutInterval){
+          arrangeTimeoutInterval=setInterval(async()=>{
+            if((roomData.status||'')!=='playing')return;
+            const el=Date.now()-arrangeStartTime;
+            if(el>180000){
+              const de=roomData.deals||{},ha=roomData.hands||{};
+              for(const [name,cards] of Object.entries(de)){
+                if(!cards.length||(ha[name]?.done))continue;
+                try{
+                  const s=await db.collection('rooms').doc(roomId).get(),d=s.data()||{};
+                  if(!(d.hands||{})[name]?.done){const meE=Object.entries(d.players||{}).find(([,x])=>x.name===name);if(meE){const upd={};upd[`hands.${name}`]={front:[],mid:[],back:[],done:true,foul:true};upd[`players.${meE[0]}`]=firebase.firestore.FieldValue.delete();await db.collection('rooms').doc(roomId).update(upd);}}
+                }catch(e){console.warn('auto-foul timeout',e);}
+              }
+            }
+          },5000);
+        }
+      }
+      const hasMycards=!!(roomData.deals||{})[myName]?.length;
+      if(!hasMycards){
+        if(cur!=='game')showScreen('game');initChat();
+        const meP=(roomData.players||{})[myId]||{},isSpec=!!meP.isSpectator;
+        document.getElementById('game-body').innerHTML=`<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:24px;"><div style="font-size:36px">${isSpec?'👀':'⏳'}</div><div style="font-size:15px;color:#f0c040;font-weight:800">${isSpec?'นั่งดูอยู่ (โต๊ะเต็ม)':'อยู่ในเกมแล้ว ✓'}</div><div style="font-size:12px;color:#c8a860;line-height:1.5">${isSpec?'โต๊ะเต็ม 4 คน<br>มีที่ว่างเมื่อไรจะได้เล่นอัตโนมัติ':'รอบนี้แจกไพ่ไปแล้ว<br>รอบถัดไปได้เล่นเลยอัตโนมัติ'}</div></div>`;
+      }else if(cur==='lobby'||cur==='result'){resultsShown=false;hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};startRound();}
+      else if(cur==='game'){const handEmpty=!hand.unplaced.length&&!hand.front.length&&!hand.mid.length&&!hand.back.length&&!hand.done;if(handEmpty)startRound();else{renderGame();autoCheckDone();}}
+    }else if(st==='confirming'){if(cur==='game'){renderGame();autoCheckDone();}}
+    else if(st==='results'){if(!resultsShown)showResults();}
+  });
+}
+function renderLobby(){
+  const players=Object.entries(roomData.players||{}),me=roomData.players?.[myId]||Object.values(roomData.players||{}).find(x=>x.name===myName);
+  if(me){myAvatar=me.avatar||myAvatar;isHost=me.isHost||false;}
+  document.getElementById('lob-cnt').textContent=players.length+' คน';
+  document.getElementById('lob-players').innerHTML=players.map(([id,p])=>`<div class="pl-item"><div class="pl-av">${p.avatar||'🎴'}</div><div class="pl-name">${p.name}${p.name===myName?' (คุณ)':''}</div><div class="pl-badge ${p.isHost?'b-host':'b-wait'}">${p.isHost?'🎯 Host':'⏳ รอ'}</div></div>`).join('');
+  const btn=document.getElementById('btn-start'),amHost=isHost||Object.values(roomData.players||{}).find(x=>x.name===myName)?.isHost||false;
+  if(amHost){btn.style.display='block';document.getElementById('lob-status').textContent=`กด "เริ่มเกม" เมื่อพร้อม (${players.length} คน)`;}
+  else{btn.style.display='none';document.getElementById('lob-status').textContent='รอ Host กด "เริ่มเกม" — หรือกดขอเป็นหัวห้องถ้า Host ไม่อยู่';}
+  const claimBtn=document.getElementById('btn-claim-host');if(claimBtn)claimBtn.style.display=amHost?'none':'block';
+  const rcBtn=document.getElementById('btn-ready-confirm');if(rcBtn)rcBtn.style.display='none';
+}
+async function claimHost(){
+  if(!confirm('ขอเป็นหัวห้องแทน?\n\nใช้เมื่อ Host เดิมไม่อยู่ — คุณจะกด "เริ่มเกม" ได้เอง'))return;
+  try{
+    const snap=await db.collection('rooms').doc(roomId).get(),data=snap.data()||{},entries=Object.entries(data.players||{});
+    const meE=entries.find(([id])=>id===myId)||entries.find(([id,p])=>p.name===myName);if(!meE){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}
+    const updates={};entries.forEach(([id,p])=>{if(p.isHost)updates['players.'+id+'.isHost']=false;});updates['players.'+meE[0]+'.isHost']=true;
+    await db.collection('rooms').doc(roomId).update(updates);isHost=true;
+  }catch(e){alert('ไม่สำเร็จ: '+(e.message||e));}
+}
+async function hostStart(){
+  const snap=await db.collection('rooms').doc(roomId).get(),data=snap.data()||{},entries=Object.entries(data.players||{});
+  const me=entries.find(([id,p])=>p.name===myName);if(!me){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}if(!me[1].isHost){alert('คุณไม่ใช่ Host ครับ');return;}
+  const playEntries=entries.filter(([id,p])=>!p.isQueue);if(playEntries.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
+  finalizingReady=false;const updates={status:'readycheck',readyAt:Date.now(),kicked:{}};
+  entries.forEach(([id,p])=>{if(!p.isQueue)updates['players.'+id+'.ready']=(id===me[0]);});
+  await db.collection('rooms').doc(roomId).update(updates);
+}
+async function confirmReady(){try{const e=Object.entries(roomData.players||{}),meE=e.find(([id])=>id===myId)||e.find(([id,p])=>p.name===myName);if(!meE)return;await db.collection('rooms').doc(roomId).update({['players.'+meE[0]+'.ready']:true});}catch(e){}}
+async function finalizeReadyCheck(){
+  if(finalizingReady)return;finalizingReady=true;
+  try{
+    const snap=await db.collection('rooms').doc(roomId).get(),data=snap.data()||{};if((data.status||'')!=='readycheck'){finalizingReady=false;return;}
+    const entries=Object.entries(data.players||{}),ready=entries.filter(([id,p])=>!p.isQueue&&p.ready),notReady=entries.filter(([id,p])=>!p.isQueue&&!p.ready);
+    if(ready.length<2){await db.collection('rooms').doc(roomId).update({status:'lobby'});finalizingReady=false;return;}
+    const updates={status:'playing',round:(data.round||0)+1,hands:{},startedAt:Date.now()},now=Date.now(),kicked=Object.assign({},data.kicked||{});
+    notReady.forEach(([id,p])=>{updates['players.'+id]=firebase.firestore.FieldValue.delete();kicked[p.name]=now;});updates.kicked=kicked;
+    const playEntries=ready.slice(0,4),deck=shuffle(makeDeck()),deals={};
+    playEntries.forEach(([id,p],i)=>{deals[p.name]=deck.slice(i*13,(i+1)*13);if(p.isSpectator)updates['players.'+id+'.isSpectator']=false;});
+    updates.deals=deals;await db.collection('rooms').doc(roomId).update(updates);
+  }catch(e){console.warn('finalizeReadyCheck',e);}finalizingReady=false;
+}
+function renderReadyCheck(){
+  const cur=document.querySelector('.screen.active')?.id;if(cur!=='lobby')showScreen('lobby');
+  document.getElementById('lob-code').textContent=roomId;document.getElementById('btn-start').style.display='none';document.getElementById('btn-claim-host').style.display='none';
+  const rb=document.getElementById('btn-ready-confirm'),draw=()=>{
+    if((roomData.status||'')!=='readycheck'){if(readyTick){clearInterval(readyTick);readyTick=null;}return;}
+    const players=Object.entries(roomData.players||{}).filter(([id,p])=>!p.isQueue),left=Math.max(0,30-Math.floor((Date.now()-(roomData.readyAt||Date.now()))/1000));
+    const meP=(roomData.players||{})[myId]||Object.values(roomData.players||{}).find(p=>p.name===myName)||{},iAmReady=!!meP.ready;
+    document.getElementById('lob-cnt').textContent=players.length+' คน';
+    document.getElementById('lob-status').innerHTML=`⏰ ยืนยันความพร้อม! เหลือ <b style="color:#f0c040;font-size:20px">${left}s</b><br><span style="font-size:11px;color:#c8a860">ใครไม่กด "พร้อม" ใน 30 วิ จะถูกนำออกจากห้องอัตโนมัติ</span>`;
+    document.getElementById('lob-players').innerHTML=players.map(([id,p])=>`<div class="pl-item"><div class="pl-av">${p.avatar||'🎴'}</div><div class="pl-name">${p.name}${p.name===myName?' (คุณ)':''}${p.isHost?' 🎯':''}</div><div class="pl-badge ${p.ready?'b-host':'b-wait'}">${p.ready?'✅ พร้อม':'⏳ รอ...'}</div></div>`).join('');
+    rb.style.display=iAmReady?'none':'block';rb.textContent=iAmReady?'✅ พร้อมแล้ว':'✅ ฉันพร้อม!';
+    const allReady=players.length>=2&&players.every(([id,p])=>p.ready);if(meP.isHost&&(left<=0||allReady))finalizeReadyCheck();
+  };draw();if(readyTick)clearInterval(readyTick);readyTick=setInterval(draw,1000);
+}
+function startRound(){
+  const deals=roomData.deals||{},players=roomData.players||{},myCards=deals[myName]||[],myRole=Object.values(players).find(p=>p.name===myName);
+  hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
+  if(!myCards.length||myRole?.isSpectator||myRole?.isQueue){document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);showScreen('game');initChat();renderSpectatorView();return;}
+  hand.unplaced=[...myCards].sort((a,b)=>b.val-a.val||(SUIT_RANK[b.suit]-SUIT_RANK[a.suit]));
+  document.getElementById('game-room-lbl').textContent='รอบที่ '+(roomData.round||1);showScreen('game');initChat();renderGame();
+}
+function renderGame(){
+  const body=document.getElementById('game-body'),players=Object.entries(roomData.players||{}),_seenOpp={},opps=players.filter(([id])=>id!==myId).map(([id,p])=>({...p,id})).filter(p=>!p.isSpectator&&!p.isQueue).filter(p=>{if(p.name===myName)return false;if(_seenOpp[p.name])return false;_seenOpp[p.name]=1;return true;});
+  const n=opps.length,handsData=roomData.hands||{},chipVal=(roomData.scores||{})[myId]||0;
+  function oppBox(op,side=false,pos=''){
+    const oh=handsData[op.name]||handsData[op.id],isDone=oh?.done||false,d=(i)=>`animation-delay:${i*0.1}s`;let cards='';
+    if(side){cards=`<div class="opp-cards-v"><div class="opp-col">${Array(3).fill(0).map((_,i)=>`<div class="opp-card-v ${isDone?'':'shuffle'}" style="${d(i)}"></div>`).join('')}</div><div class="opp-col">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-v ${isDone?'':'shuffle'}" style="${d(i+3)}"></div>`).join('')}</div><div class="opp-col">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-v ${isDone?'':'shuffle'}" style="${d(i+8)}"></div>`).join('')}</div></div>`;}
+    else{cards=`<div class="opp-cards-h"><div class="opp-row-h">${Array(3).fill(0).map((_,i)=>`<div class="opp-card-h ${isDone?'':'shuffle'}" style="${d(i)}"></div>`).join('')}</div><div class="opp-row-h">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-h ${isDone?'':'shuffle'}" style="${d(i+3)}"></div>`).join('')}</div><div class="opp-row-h">${Array(5).fill(0).map((_,i)=>`<div class="opp-card-h ${isDone?'':'shuffle'}" style="${d(i+8)}"></div>`).join('')}</div></div>`;}
+    const cs=(roomData.scores||{})[op.id]||0;return `<div class="opp-box ${side?'side':''} ${pos}"><div class="opp-av ${side?'sm':''}">${op.avatar}</div><div class="opp-nm">${op.name}</div><div class="opp-chip">🪙<span>${cs>=0?'+':''}${cs}</span></div>${cards}${isDone?`<div class="ready-badge">✅ พร้อม</div>`:''}</div>`;
+  }
+  function tableHTML(){
+    const center=`<div class="table-center"><div class="table-felt"><div class="table-logo">สิบสามใบ</div></div></div>`;let seats='';
+    if(n===1)seats=oppBox(opps[0],false,'pos-top');else if(n===2)seats=oppBox(opps[0],true,'pos-left')+oppBox(opps[1],true,'pos-right');else if(n>=3)seats=oppBox(opps[0],true,'pos-left')+oppBox(opps[1],false,'pos-top')+oppBox(opps[2],true,'pos-right');
+    return`<div class="round-table"><div class="oval-table">${center}${seats}</div></div>`;
+  }
+  function dz(row,cards,max,label){
+    const full=cards.length===max,ev=full?evalHand(cards).name:'',mf=hand.mid.length===5,bf=hand.back.length===5;
+    const sw=row==='mid'&&mf&&bf?`<button onclick="swapMB()" style="background:rgba(32,128,200,.2);border:1px solid rgba(32,128,200,.4);color:#60c8ff;border-radius:8px;padding:5px 8px;font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">⇅ สลับหลัง</button>`:row==='back'&&mf&&bf?`<button onclick="swapMB()" style="background:rgba(32,128,200,.2);border:1px solid rgba(32,128,200,.4);color:#60c8ff;border-radius:8px;padding:5px 8px;font-family:'Kanit',sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">⇅ สลับกลาง</button>`:'';
+    const ch=cards.map((c,i)=>`<div class="big-card ${isRed(c)?'red-card':'black-card'}" data-source="${row}" data-idx="${i}" ontouchstart="dragStart(event,this,'${row}',${i})" onmousedown="dragStart(event,this,'${row}',${i})"><span class="cr">${c.rank}</span><span class="cs">${c.suit}</span></div>`).join('');
+    return`<div class="arr-row"><div class="row-st"><div class="row-chk ${full?'ok':''}">${full?'✓':''}</div><div class="row-lbl">${label}</div></div><div class="dz ${full?'dz-full':''}" data-zone="${row}" ontouchend="dropZone(event,this,'${row}')" onmouseup="dropZone(event,this,'${row}')">${cards.length===0?`<span style="font-size:11px;color:rgba(255,255,255,.2);padding:4px">ลากไพ่มาวาง</span>`:''}${ch}${full?`<span class="dz-tag">${ev}</span>`:''}</div>${sw}</div>`;
+  }
+  const allPlaced=hand.unplaced.length===0,isValid=allPlaced&&validArr(hand.front,hand.mid,hand.back),needChip=35*(roomData.rate||1);
+  const lowChipWarn=myMemberId&&myChips<needChip?`<div class="lowchip-warn">🪙 ชิบเหลือ ${myChips} • ขั้นต่ำห้องนี้ ${needChip} — เติมชิบก่อนหมดนะครับ (จบรอบนี้แล้วต้องเติมก่อนเล่นต่อ)</div>`:'';
+  if(hand.done){
+    const de=roomData.deals||{},deIds=Object.keys(de),allD=deIds.length>0&&deIds.every(id=>(roomData.hands||{})[id]?.done);
+    body.innerHTML=`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${tableHTML()}<div class="table-divider"></div><div class="my-hand"><div class="wait-box"><div class="wait-title">✅ ยืนยันแล้ว</div><div class="wait-sub">รอผู้เล่นอื่นจัดไพ่...</div><div class="dots"><span></span><span></span><span></span></div><div class="wait-stats"><div class="wait-stat"><div class="ws-num">${roomData.round||1}</div><div class="ws-lbl">🎲 เล่นไป (รอบ)</div></div><div class="wait-stat"><div class="ws-num" style="color:${chipVal>=0?'#40e880':'#ff8080'}">${chipVal>=0?'+':''}${Math.round(chipVal*100)/100}</div><div class="ws-lbl">${chipVal>=0?'📈 กำไร':'📉 ขาดทุน'} (ชิบ)</div></div></div>${!allD?`<button class="abtn abtn-auto" onclick="undoConfirm()" style="max-width:160px;font-size:12px;margin-top:4px">↩ จัดใหม่</button>`:`<div style="font-size:12px;color:#40e880;font-weight:700">ทุกคนพร้อมแล้ว! 🎉</div>`}</div></div></div>`;return;
+  }
+  const vHTML=allPlaced?isValid?`<div class="validate val-ok">✅ จัดถูกต้อง</div>`:`<div class="validate val-warn">⚠️ ไพ่ฟาว! ถ้ายืนยันโดน -6 ทุกคน</div>`:'',confBtn=allPlaced?isValid?`<button class="abtn abtn-ready" onclick="confirmHand()">✅ พร้อม!</button>`:`<button class="abtn abtn-foul" onclick="confirmFoul()">⚠️ ยืนยัน (ฟาว)</button>`:`<button class="abtn abtn-ready" disabled style="opacity:.4;flex:2">วางไพ่ให้ครบก่อน</button>`;
+  
+  // 📌 คำนวณขยายองศากางพัด (stepAngle = 4.5) เพื่อให้ไพ่ไม่ทับกันเกินจนมองไม่เห็น
+  const unHTML=`<div style="font-size:11px;color:#c8a860;margin-bottom:4px">🖐️ ไพ่ในมือ (${hand.unplaced.length} ใบ)</div><div class="unplaced-area" data-zone="unplaced" ontouchend="dropZone(event,this,'unplaced')" onmouseup="dropZone(event,this,'unplaced')" style="position:relative; height:150px; overflow:visible; display:flex; justify-content:center; align-items:flex-end;"><div class="wood-tray"></div><div class="badge-holder"><div class="gold-badge"><span>${hand.unplaced.length} ใบ</span></div></div>${hand.unplaced.map((c, i) => { const angle=(i-(hand.unplaced.length-1)/2)*4.5; return `<div class="custom-card ${isRed(c)?'red-suit':'black-suit'}" data-source="unplaced" data-idx="${i}" style="transform: rotate(${angle}deg); z-index: ${i};" ontouchstart="dragStart(event,this,'unplaced',${i})" onmousedown="dragStart(event,this,'unplaced',${i})" onmouseenter="this.style.transform='rotate(${angle}deg) translateY(-25px) scale(1.05)';this.style.zIndex=100;" onmouseleave="this.style.transform='rotate(${angle}deg)';this.style.zIndex=${i};"><div class="top-left"><span class="rank">${c.rank}</span><span class="suit">${c.suit}</span></div><div class="big-suit">${c.suit}</div></div>`; }).join('')}</div>`;
+
+  body.innerHTML=`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">${tableHTML()}<div class="table-divider"></div><div class="my-hand"><div class="my-info"><div class="my-av">${myAvatar||'🦊'}</div><div style="flex:1"><div class="my-nm">${myName}</div><div class="my-chip">${chipVal>=0?'📈 กำไร +':'📉 ขาดทุน '}${chipVal} ชิบ • เล่นไป ${roomData.round||1} รอบ</div></div><div class="my-left">เหลือ ${hand.unplaced.length} ใบ</div></div>${lowChipWarn}${dz('front',hand.front,3,'หน้า')}${dz('mid',hand.mid,5,'กลาง')}${dz('back',hand.back,5,'หลัง')}${unHTML}${vHTML}<div class="actions"><button class="abtn abtn-auto" onclick="autoArr()">🔀 จัดให้</button><button class="abtn abtn-clear" onclick="clearArr()">↩ ล้าง</button>${confBtn}</div></div></div>`;
+}
+function autoArr(){const arr=aiArrange([...hand.unplaced,...hand.front,...hand.mid,...hand.back]);hand.front=arr.front;hand.mid=arr.mid;hand.back=arr.back;hand.unplaced=[];playSound('deal');renderGame();}
+function clearArr(){hand.unplaced=[...hand.front,...hand.mid,...hand.back,...hand.unplaced].sort((a,b)=>b.val-a.val);hand.front=[];hand.mid=[];hand.back=[];renderGame();}
+function swapMB(){[hand.mid,hand.back]=[hand.back,hand.mid];renderGame();}
+function autoFill(){const max={front:3,mid:5,back:5},empty=['front','mid','back'].filter(r=>hand[r].length===0),partial=['front','mid','back'].filter(r=>hand[r].length>0&&hand[r].length<max[r]);if(empty.length===1&&partial.length===0){const r=empty[0];if(hand.unplaced.length===max[r]){hand[r]=[...hand.unplaced];hand.unplaced=[];}}}
+const drag={active:false,el:null,source:null,idx:null,lastZone:null},ghost=document.getElementById('ghost-card');
+function dragStart(e,el,zone,idx){
+  e.preventDefault();const t=e.touches?e.touches[0]:e;drag.active=true;drag.el=el;drag.source=zone;drag.idx=idx;drag.lastZone=null;el.classList.add('dragging-source');
+  const arr=zone==='unplaced'?hand.unplaced:hand[zone],c=arr[idx];
+  if(c){const gcr=ghost.querySelector('.cr'),gcs=ghost.querySelector('.cs');if(gcr)gcr.textContent=c.rank;if(gcs)gcs.textContent=c.suit;ghost.style.color=isRed(c)?'#b81010':'#0a0a18';ghost.style.left=(t.clientX-27)+'px';ghost.style.top=(t.clientY-37)+'px';ghost.classList.add('visible');}
+  document.addEventListener('touchmove',dragMove,{passive:false});document.addEventListener('touchend',dragEnd);document.addEventListener('mousemove',dragMove);document.addEventListener('mouseup',dragEnd);
+}
+function dragMove(e){
+  if(!drag.active)return;e.preventDefault();const t=e.touches?e.touches[0]:e;ghost.style.left=(t.clientX-27)+'px';ghost.style.top=(t.clientY-37)+'px';
+  const under=document.elementFromPoint(t.clientX,t.clientY),dz=under?.closest('[data-zone]');
+  if(drag.lastZone&&drag.lastZone!==dz)drag.lastZone.classList.remove('dz-hover');if(dz){dz.classList.add('dz-hover');drag.lastZone=dz;}
+}
+function dragEnd(e){
+  if(!drag.active)return;const t=e.changedTouches?e.changedTouches[0]:e;ghost.style.opacity='0';const under=document.elementFromPoint(t.clientX,t.clientY);ghost.style.opacity='';
+  const cardEl=under?.closest('.big-card[data-source], .custom-card[data-source]'),dzEl=under?.closest('[data-zone]'),toZone=dzEl?.dataset?.zone;
+  ghost.classList.remove('visible');if(drag.lastZone)drag.lastZone.classList.remove('dz-hover');if(drag.el)drag.el.classList.remove('dragging-source');drag.active=false;
+  document.removeEventListener('touchmove',dragMove);document.removeEventListener('touchend',dragEnd);document.removeEventListener('mousemove',dragMove);document.removeEventListener('mouseup',dragEnd);
+  if(!toZone||toZone===drag.source)return;dropCard(drag.source,drag.idx,toZone,cardEl&&cardEl.dataset.source===toZone?parseInt(cardEl.dataset.idx):undefined);
+}
+function dropZone(e,el,zone){if(!drag.active)return;dragEnd(e);}
+function dropCard(fromZone,fromIdx,toZone,toIdx){
+  const max={front:3,mid:5,back:5};let card=fromZone==='unplaced'?hand.unplaced[fromIdx]:hand[fromZone][fromIdx];if(!card)return;
+  if(toZone!=='unplaced'&&toIdx!==undefined&&toIdx>=0){
+    const target=hand[toZone][toIdx];
+    if(target){
+      if(fromZone==='unplaced')hand.unplaced.splice(fromIdx,1);else hand[fromZone].splice(fromIdx,1);
+      if(fromZone==='unplaced')hand.unplaced.splice(fromIdx,0,target);else hand[fromZone].splice(fromIdx,0,target);
+      hand[toZone][toIdx]=card;playSound('drop');autoFill();renderGame();return;
+    }
+  }
+  if(toZone!=='unplaced'&&hand[toZone].length>=max[toZone]){const d=hand[toZone].pop();if(fromZone==='unplaced')hand.unplaced.splice(fromIdx,1);else hand[fromZone].splice(fromIdx,1);hand[toZone].push(card);if(fromZone==='unplaced')hand.unplaced.splice(fromIdx,0,d);else hand[fromZone].splice(fromIdx,0,d);}
+  else{if(fromZone==='unplaced')hand.unplaced.splice(fromIdx,1);else hand[fromZone].splice(fromIdx,1);if(toZone==='unplaced')hand.unplaced.push(card);else hand[toZone].push(card);}
+  playSound('drop');autoFill();renderGame();
+}
+async function confirmHand(){hand.done=true;hand.foul=false;const updates={};updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:false};await db.collection('rooms').doc(roomId).update(updates);renderGame();await checkAllDone();}
+async function confirmFoul(){hand.done=true;hand.foul=true;const updates={};updates[`hands.${myName}`]={front:hand.front,mid:hand.mid,back:hand.back,done:true,foul:true};await db.collection('rooms').doc(roomId).update(updates);renderGame();await checkAllDone();}
+async function undoConfirm(){const de=roomData.deals||{},ha=roomData.hands||{},names=Object.keys(de),allD=names.length>0&&names.every(n=>ha[n]?.done);if(allD){alert('ไม่สามารถจัดใหม่ได้แล้ว');return;}hand.done=false;hand.foul=false;const updates={};updates[`hands.${myName}.done`]=false;await db.collection('rooms').doc(roomId).update(updates);renderGame();}
+async function checkAllDone(){try{const snap=await db.collection('rooms').doc(roomId).get(),data=snap.data();if(!data||data.status==='results')return;const de=data.deals||{},ha=data.hands||{},names=Object.keys(de);if(!names.length)return;if(names.every(n=>ha[n]?.done))await db.collection('rooms').doc(roomId).update({status:'results'});}catch(e){console.warn('checkAllDone error',e);}}
+function showResults(){
+  if(resultsShown)return;resultsShown=true;initChat();
+  const _seen={},players=Object.entries(roomData.players||{}).map(([id,p])=>({...p,id})).filter(p=>!p.isSpectator&&!p.isQueue).filter(p=>{if(_seen[p.name])return false;_seen[p.name]=1;return true;});
+  const hands=roomData.hands||{},handsById={};players.forEach(p=>{handsById[p.name]=hands[p.name]||hands[p.id]||{front:[],mid:[],back:[],done:false,foul:false};});
+  if(!players.length||!Object.keys(handsById).length){document.getElementById('res-list').innerHTML='<div style="text-align:center;color:#c8a860;padding:20px">กำลังโหลดผล...</div>';resultsShown=false;return;}
+  const dragon=players.find(p=>isDragonHand(handsById[p.name]||{front:[],mid:[],back:[]}));
+  let scores=dragon?players.map(p=>({id:p.id,name:p.name,avatar:p.avatar,roundScore:p.name===dragon.name?30*(players.length-1):-30,bonusLabel:p.name===dragon.name?'🐉 ไพ่มังกร':'',taluCount:0,isDarby:false})):calcScores(players,handsById);
+  const rate=roomData.rate||1,comm=roomData.commission||0;
+  scores.forEach(s=>{let amt=s.roundScore*rate;if(amt>0&&comm>0)amt=amt*(1-comm/100);s.roundScore=Math.round(amt*100)/100;});
+  const newScores={};players.forEach(p=>{const old=(roomData.scores||{})[p.id]||0;newScores[p.id]=Math.round((old+(scores.find(s=>s.id===p.id)?.roundScore||0))*100)/100;});
+  db.collection('rooms').doc(roomId).update({scores:newScores}).catch(()=>{});roomData.scores=newScores;
+  if(myId in newScores)settleMyChips(newScores[myId]);saveRoundToHistory(players,handsById,scores);
+  if(!battleShown&&!dragon){battleShown=true;renderResults(players,handsById,scores);showBattle(players,handsById,scores);return;}
+  renderResults(players,handsById,scores);showScreen('result');
+}
+function renderResults(players,handsById,scores){
+  document.getElementById('res-round').textContent='รอบที่ '+(roomData.round||1)+' • x'+(roomData.rate||1)+(roomData.commission?` • คอม ${roomData.commission}%`:'');
+  const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore),darby=scores.find(s=>s.isDarby);
+  if(darby)announceText("ดาร์บี้สิคร้าบ");
+  const darbyHTML=darby?`<div class="darby-banner">🏆 ดาร์บี้! ${darby.avatar} ${darby.name} กินรวดทุกกอง ทุกคน! (คะแนน x4)</div>`:'';
+  document.getElementById('res-list').innerHTML=darbyHTML+sorted.map((s,i)=>{
+    const medals=['🥇','🥈','🥉','4️⃣'],pos=s.roundScore>=0,h=handsById[s.name]||{},tags=[`หน้า: ${evalHand(h.front||[]).name}`,`กลาง: ${evalHand(h.mid||[]).name}`,`หลัง: ${evalHand(h.back||[]).name}`];
+    return`<div class="res-card"><div class="res-nm"><span>${medals[i]||''} ${s.avatar} ${s.name}${s.name===myName?' (คุณ)':''}</span><span class="res-total ${pos?'pos':'neg'}">${pos?'+':''}${s.roundScore}</span></div><div class="res-rows">${tags.map(t=>`<span class="res-tag">${t}</span>`).join('')}${s.bonusLabel?`<span class="res-tag">⭐ ${s.bonusLabel}</span>`:''}</div></div>`;
+  }).join('');
+  const totalScores=roomData.scores||{};
+  document.getElementById('res-total').innerHTML=players.sort((a,b)=>(totalScores[b.id]||0)-(totalScores[a.id]||0)).map((p,i)=>{const t=totalScores[p.id]||0;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,220,80,.08)"><span>${['🥇','🥈','🥉','4️⃣'][i]||''} ${p.avatar}</span><span style="flex:1;font-size:13px;font-weight:700">${p.name}</span><span style="font-size:14px;font-weight:900;${t>=0?'color:#40e880':'color:#ff6060'}">${t>=0?'+':''}${t}</span></div>`;}).join('');
+  document.getElementById('btn-next').style.display=isHost?'block':'none';
+}
+function fightCardHTML(c){return`<div class="fight-card ${isRed(c)?'rc':'bc'}"><span class="cr">${c.rank}</span><span class="cs">${c.suit}</span></div>`;}
+function showBattle(players,handsById,scores){
+  battleTimers.forEach(t=>clearTimeout(t));battleTimers=[];showScreen('battle');const matchups=buildMatchups(players,handsById),body=document.getElementById('battle-body'),rowLabel={front:'หน้า',mid:'กลาง',back:'หลัง'};let html='';
+  matchups.forEach((m,mi)=>{
+    const rowsHTML=m.rowResults.map(r=>{const aBadge=r.winner>0?'fwin':r.winner<0?'flose':'fdraw',bBadge=r.winner<0?'fwin':r.winner>0?'flose':'fdraw';return`<div class="fight-line"><div class="fight-p"><div class="fight-cards">${r.aCards.map(fightCardHTML).join('')}</div><div class="fight-hn">${r.aName||'-'}</div><div class="rbadge ${aBadge}">${r.winner>0?'ชนะ':r.winner<0?'แพ้':'เสมอ'}</div></div><div class="fight-vs">${rowLabel[r.key]}</div><div class="fight-p"><div class="fight-cards">${r.bCards.map(fightCardHTML).join('')}</div><div class="fight-hn">${r.bName||'-'}</div><div class="rbadge ${bBadge}">${r.winner<0?'ชนะ':r.winner>0?'แพ้':'เสมอ'}</div></div></div>`;}).join('');
+    html+=`<div class="b-section" id="bsec-${mi}"><div class="b-title">${m.a.avatar} ${m.a.name} &nbsp;⚔️&nbsp; ${m.b.avatar} ${m.b.name}</div>${m.ha.foul||m.hb.foul?`<div style="text-align:center;font-size:11px;color:#ff6060;margin-bottom:6px">⚠️ ${m.ha.foul?m.a.name:''}${m.ha.foul&&m.hb.foul?' และ ':''}${m.hb.foul?m.b.name:''} ฟาว</div>`:''}${rowsHTML}${m.talu?`<div class="talu-banner" id="talu-${mi}">🔫 ทะลุ! ${m.taluWinner.avatar} ${m.taluWinner.name} กินรวด 3 กอง (คะแนน x2)</div>`:''}</div>`;
+  });
+  const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
+  html+=`<div class="b-section" id="bsec-final"><div class="b-title">💰 คะแนนรอบนี้</div>${sorted.map(s=>{const pos=s.roundScore>=0;return`<div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid rgba(255,220,80,.08)"><span style="font-size:20px">${s.avatar}</span><span style="flex:1;font-size:14px;font-weight:700">${s.name}${s.name===myName?' (คุณ)':''}</span><span style="font-size:20px;font-weight:900;color:${pos?'#40e880':'#ff6060'}">${pos?'+':''}${s.roundScore}</span></div>`;}).join('')}<button class="abtn abtn-ready" onclick="goToResults()" style="margin-top:12px;width:100%">📊 ดูผลรวม →</button></div>`;
+  body.innerHTML=html;body.scrollTop=0;
+  const total=matchups.length+1;
+  for(let i=0;i<total;i++){
+    const sec=document.getElementById(i<matchups.length?`bsec-${i}`:'bsec-final'),delay=600+i*1100;
+    battleTimers.push(setTimeout(()=>{
+      sec?.classList.add('shown');sec?.scrollIntoView({behavior:'smooth',block:'center'});
+      if(i<matchups.length&&matchups[i].talu){const tb=document.getElementById(`talu-${i}`);battleTimers.push(setTimeout(()=>{tb?.classList.add('shown');announceText("ทะลุสิคร้าบ");},400));}
+    },delay));
+  }
+}
+function goToResults(){battleTimers.forEach(t=>clearTimeout(t));battleTimers=[];showScreen('result');}
+async function nextRound(){
+  const need=35*(roomData.rate||1);if(myMemberId&&myChips<need){alert('🪙 ชิบไม่พอเล่นรอบต่อไปครับ\n\nชิบเหลือ '+myChips+' • ขั้นต่ำห้องนี้ '+need+'\nกรุณาให้แอดมินเติมชิบก่อน\n\nระบบจะพากลับไปล็อบบี้');leaveRoom();return;}
+  resultsShown=false;battleShown=false;hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};await db.collection('rooms').doc(roomId).update({status:'lobby',hands:{},deals:{}});
+}
+function showScoreboard(){const sc=roomData.scores||{},pl=Object.entries(roomData.players||{}).map(([id,p])=>({...p,id}));alert('📊 คะแนนสะสม\n'+pl.sort((a,b)=>(sc[b.id]||0)-(sc[a.id]||0)).map(p=>`${p.avatar} ${p.name}: ${sc[p.id]>=0?'+':''}${sc[p.id]||0}`).join('\n'));}
+async function settleMyChips(myCumScore){
+  if(!myMemberId||typeof myCumScore!=='number')return;const credited=(roomData.credited||{})[myId]||0,toAdd=Math.round((myCumScore-credited)*100)/100;if(toAdd===0)return;
+  try{await db.collection('members').doc(myMemberId).update({chips:firebase.firestore.FieldValue.increment(toAdd)});await db.collection('rooms').doc(roomId).update({['credited.'+myId]:myCumScore});roomData.credited=roomData.credited||{};roomData.credited[myId]=myCumScore;const snap=await db.collection('members').doc(myMemberId).get();if(snap.exists){myChips=Math.round((snap.data().chips||0)*100)/100;sessionStorage.setItem('gr_chips',myChips);}}catch(e){}
+}
+async function leaveRoom(){
+  if(unsub)unsub();if(chatUnsub)chatUnsub();
+  try{
+    const snap=await db.collection('rooms').doc(roomId).get(),data=snap.data()||{},updates={};
+    if(data.status==='playing'&&data.deals&&data.deals[myName]&&!data.hands?.[myName]?.done)updates[`hands.${myName}`]={front:[],mid:[],back:[],done:true,foul:true};
+    const meEntry=data.players?.[myId]||Object.values(data.players||{}).find(p=>p.name===myName);
+    if(meEntry?.isHost){const others=Object.entries(data.players||{}).filter(([id,p])=>id!==myId&&p.name!==myName),pick=others.find(([id,p])=>!p.isSpectator&&!p.isQueue)||others[0];if(pick)updates[`players.${pick[0]}.isHost`]=true;}
+    updates[`players.${myId}`]=firebase.firestore.FieldValue.delete();await db.collection('rooms').doc(roomId).update(updates);if(data.status==='playing')await checkAllDone();
+  }catch(e){}
+  sessionStorage.removeItem('gr_room');sessionStorage.removeItem('gr_myId');location.href='lobby.html?name='+encodeURIComponent(myName||'')+'&avatar='+encodeURIComponent(myAvatar||'🦊');
+}
+function confirmLeave(){
+  const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML=`<div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:320px;font-family:'Kanit',sans-serif;text-align:center;"><div style="font-size:36px;margin-bottom:10px">🚪</div><div style="font-size:18px;font-weight:900;color:#8a4000;margin-bottom:6px">ออกจากเกม?</div><div style="font-size:13px;color:#7a4a18;margin-bottom:20px;line-height:1.6">ถ้าออกระหว่างเกม<br>ไพ่ของคุณจะถูกนับเป็น <b style="color:#c02020">ฟาว (-6)</b><br>ให้ผู้เล่นที่เหลือทุกคน</div><div style="display:flex;gap:8px;"><button onclick="this.closest('div[style]').remove()" style="flex:1;padding:12px;border:1px solid rgba(150,80,0,.2);border-radius:12px;background:#f5f0e8;color:#7a4a18;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">← อยู่ต่อ</button><button onclick="leaveRoom()" style="flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(160deg,#e84040,#b02020);color:#fff;font-family:'Kanit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">ออกเลย</button></div></div>`;
+  document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+}
+let chatUnsub=null,chatOpen=false,unreadCount=0;
+function toggleChat(){
+  chatOpen=!chatOpen;document.getElementById('chat-panel').classList.toggle('open',chatOpen);
+  if(chatOpen){unreadCount=0;document.getElementById('chat-badge').textContent='0';document.getElementById('chat-badge').classList.remove('show');setTimeout(()=>{const msgs=document.getElementById('chat-msgs');msgs.scrollTop=msgs.scrollHeight;document.getElementById('chat-input').focus();},300);}
+}
+function initChat(){
+  if(!roomId||chatUnsub)return;document.getElementById('chat-fab').style.display='flex';
+  chatUnsub=db.collection('rooms').doc(roomId).collection('chat').orderBy('ts').limitToLast(50).onSnapshot(snap=>{
+    snap.docChanges().forEach(change=>{
+      if(change.type==='added'){
+        const d=change.doc.data();appendChatMsg(d);
+        if(!chatOpen&&d.senderId!==myId){unreadCount++;const b=document.getElementById('chat-badge');b.textContent=unreadCount>9?'9+':String(unreadCount);b.classList.add('show');}
+      }
+    });
+  });
+}
+function appendChatMsg(d){
+  const msgs=document.getElementById('chat-msgs'),isMe=d.senderId===myId,time=d.ts?.toDate?new Date(d.ts.toDate()).toLocaleTimeString('th',{hour:'2-digit',minute:'2-digit'}):'';
+  if(d.type==='system')msgs.innerHTML+=`<div class="chat-sys">${d.text}</div>`;
+  else msgs.innerHTML+=`<div class="chat-msg ${isMe?'mine':''}"><div class="chat-av">${d.avatar||'🎴'}</div><div>${!isMe?`<div class="chat-name">${d.name}</div>`:''}<div class="chat-bubble">${escapeHtml(d.text)}</div>${time?`<div class="chat-time">${time}</div>`:''}</div></div>`;
+  if(chatOpen)msgs.scrollTop=msgs.scrollHeight;
+}
+async function sendChat(){const inp=document.getElementById('chat-input'),text=inp.value.trim();if(!text||!roomId||!myId)return;inp.value='';try{await db.collection('rooms').doc(roomId).collection('chat').add({text,name:myName,avatar:myAvatar||'🎴',senderId:myId,type:'text',ts:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){console.warn('chat error',e);}}
+function escapeHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+let histViewRound=null;
+function saveRoundToHistory(players,handsById,scores){
+  try{
+    const round=roomData.round||1;if(roomData.history&&roomData.history[round])return;
+    const sorted=[...scores].sort((a,b)=>b.roundScore-a.roundScore);
+    const rows=sorted.map(s=>{const h=handsById[s.name]||{};return{name:s.name,avatar:s.avatar||'🎴',roundScore:s.roundScore||0,bonusLabel:s.bonusLabel||'',foul:!!h.foul,front:(h.front||[]).map(c=>({suit:c.suit,rank:c.rank,val:c.val})),mid:(h.mid||[]).map(c=>({suit:c.suit,rank:c.rank,val:c.val})),back:(h.back||[]).map(c=>({suit:c.suit,rank:c.rank,val:c.val}))};});
+    const rec={round,ts:Date.now(),rows},updates={['history.'+round]:rec},KEEP=10,existing=Object.keys(roomData.history||{}).map(Number).filter(n=>!isNaN(n));
+    const allRounds=Array.from(new Set(existing.concat(round))).sort((a,b)=>a-b);if(allRounds.length>KEEP)allRounds.slice(0,allRounds.length-KEEP).forEach(r=>{updates['history.'+r]=firebase.firestore.FieldValue.delete();});
+    db.collection('rooms').doc(roomId).update(updates).catch(()=>{});
+  }catch(e){console.warn('saveRoundToHistory',e);}
+}
+function openHistory(){histViewRound=null;document.getElementById('hist-modal').classList.add('open');renderHistoryList();}
+function closeHistory(){document.getElementById('hist-modal').classList.remove('open');histViewRound=null;}
+function historyBack(){histViewRound=null;renderHistoryList();}
+function renderHistoryList(){
+  document.getElementById('hist-title').textContent='📜 ประวัติไพ่ย้อนหลัง';document.getElementById('hist-back').style.display='none';document.getElementById('hist-actions').style.display='none';const body=document.getElementById('hist-body'),hist=roomData.history||{},rounds=Object.values(hist).sort((a,b)=>b.round-a.round);
+  if(!rounds.length){body.innerHTML='<div class="hist-empty">🃏<br>ยังไม่มีประวัติ<br><span style="font-size:12px">เล่นจบรอบแล้วประวัติจะถูกเก็บไว้ที่นี่</span></div>';return;}
+  body.innerHTML=rounds.map(r=>{const win=[...r.rows].sort((a,b)=>b.roundScore-a.roundScore)[0],t=r.ts?new Date(r.ts).toLocaleString('th',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';return`<div class="hist-item" onclick="viewHistoryRound(${r.round})"><div class="hist-item-rnd"><small>รอบ</small><b>${r.round}</b></div><div class="hist-item-mid"><div class="hist-item-win">👑 ${win?win.avatar+' '+win.name:'-'} ${win?(win.roundScore>=0?'+':'')+win.roundScore:''}</div><div class="hist-item-time">${t} • ${r.rows.length} คน</div></div><div class="hist-item-go">›</div></div>`;}).join('');
+}
+function histCardHTML(c){const red=c.suit==='♥'||c.suit==='♦';return`<div class="hcard ${red?'rc':'bc'}"><span class="cr">${c.rank}</span><span class="cs">${c.suit}</span></div>`;}
+function viewHistoryRound(round){
+  const hist=roomData.history||{},rec=hist[round];if(!rec)return;histViewRound=round;document.getElementById('hist-title').textContent='รอบที่ '+round;document.getElementById('hist-back').style.display='block';document.getElementById('hist-actions').style.display='block';
+  const t=rec.ts?new Date(rec.ts).toLocaleString('th',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'',sorted=[...rec.rows].sort((a,b)=>b.roundScore-a.roundScore);
+  const rowsHTML=sorted.map(p=>{
+    const line=(lbl,cards)=>`<div class="hist-rowline"><div class="hist-rowlbl">${lbl}</div><div class="hist-rowcards">${(cards||[]).map(histCardHTML).join('')}</div><div class="hist-rowhn">${evalHand(cards||[]).name||'-'}</div></div>`;
+    const pos=p.roundScore>=0,tag=p.foul?'⚠️ ฟาว':p.bonusLabel?'⭐ '+p.bonusLabel:'';
+    return`<div class="hist-pl ${p.foul?'foul':''}"><div class="hist-pl-top"><span class="hist-pl-nm">${p.avatar} ${p.name}</span><span class="hist-pl-sc ${pos?'pos':'neg'}">${pos?'+':''}${p.roundScore}</span></div>${line('หน้า',p.front)}${line('กลาง',p.mid)}${line('หลัง',p.back)}${tag?`<div class="hist-pl-tag">${tag}</div>`:''}</div>`;
+  }).join('');
+  document.getElementById('hist-body').innerHTML=`<div class="hist-shot" id="hist-shot"><div class="hist-shot-hdr">🃏 3 กอง กาญ — ห้อง ${roomId||''} • รอบที่ ${round}</div>${rowsHTML}<div class="hist-foot">บันทึกเมื่อ ${t}</div></div>`;document.getElementById('hist-body').scrollTop=0;
+}
+async function saveHistoryImage(){
+  const node=document.getElementById('hist-shot');if(!node)return;if(typeof html2canvas==='undefined'){alert('ยังโหลดเครื่องมือบันทึกรูปไม่เสร็จ ลองใหม่อีกครั้งครับ');return;}
+  const btn=document.getElementById('hist-save-btn'),orig=btn.textContent;btn.textContent='⏳ กำลังบันทึก...';btn.disabled=true;
+  try{
+    const canvas=await html2canvas(node,{backgroundColor:'#08200a',scale:2,useCORS:true,logging:false}),isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const fileName=`3kong-${roomId||'room'}-รอบ${histViewRound}.png`;
+    await new Promise(res=>canvas.toBlob(blob=>{
+      if(!blob){alert('สร้างรูปไม่สำเร็จ');res();return;}const url=URL.createObjectURL(blob);
+      if(isIOS){const w=window.open();if(w)w.document.write(`<img src="${url}" style="width:100%"><p style="font-family:sans-serif;text-align:center;color:#555">กดค้างที่รูปแล้วเลือก "บันทึกรูปภาพ"</p>`);else window.location.href=url;}
+      else{const a=document.createElement('a');a.href=url;a.download=fileName;document.body.appendChild(a);a.click();a.remove();}
+      setTimeout(()=>URL.revokeObjectURL(url),4000);res();
+    },'image/png'));
+  }catch(e){console.warn('saveHistoryImage',e);alert('บันทึกรูปไม่สำเร็จ: '+(e.message||e));}finally{btn.textContent=orig;btn.disabled=false;}
+}
+</script>
+</body>
+</html>
