@@ -201,7 +201,7 @@ function joinToPlay(code,rate){
 }
 function enterRoom(code){
   const params=new URLSearchParams({room:code,name:myName,myName:myName,avatar:myAvatar});
-  location.href='game-room.html?'+params.toString();
+  location.href='game-room-fan.html?'+params.toString();
 }
 loadMe();
 loadRooms();
