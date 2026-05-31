@@ -853,6 +853,7 @@ function buildMatchups(players,hands){
 let myId=null,myName=null,myAvatar=null,roomId=null,isHost=false,unsub=null;
 let myMemberId=null;
 let readyTick=null,finalizingReady=false;  // ระบบยืนยันความพร้อมก่อนแจกไพ่
+let arrangeTimeoutInterval=null,arrangeStartTime=null;  // บังคับจบไพ่ AFK เกิน 3 นาที
 let myChips=0; // ยอดชิบจริงจาก members collection
 let hand={front:[],mid:[],back:[],unplaced:[],done:false,foul:false};
 let roomData={};
@@ -992,6 +993,7 @@ function listen(){
     const st=roomData.status||'lobby';
     const cur=document.querySelector('.screen.active')?.id;
     if(st!=='readycheck'&&readyTick){ clearInterval(readyTick); readyTick=null; }
+    if(st!=='playing'&&arrangeTimeoutInterval){ clearInterval(arrangeTimeoutInterval); arrangeTimeoutInterval=null; arrangeStartTime=null; }
     if(st==='lobby'||st==='waiting_start'){
       resultsShown=false;
       battleShown=false;
@@ -1001,6 +1003,38 @@ function listen(){
       resultsShown=false;
       renderReadyCheck();
     } else if(st==='playing'){
+      // ── เตะคนไม่จัดไพ่เกิน 3 นาที (host เป็นคนรัน check) ──
+      const amHost=(roomData.players||{})[myId]?.isHost || Object.values(roomData.players||{}).find(p=>p.name===myName)?.isHost;
+      if(amHost){
+        if(arrangeStartTime===null) arrangeStartTime=Date.now();
+        if(!arrangeTimeoutInterval){
+          arrangeTimeoutInterval=setInterval(async()=>{
+            if((roomData.status||'')!=='playing'){ return; }
+            const elapsed=Date.now()-arrangeStartTime;
+            const timeout=180000; // 3 นาที
+            if(elapsed>timeout){
+              const deals=roomData.deals||{}, hands=roomData.hands||{};
+              for(const [name,cards] of Object.entries(deals)){
+                if(!cards.length||(hands[name]?.done)) continue;
+                try{
+                  const snap=await db.collection('rooms').doc(roomId).get();
+                  const data=snap.data()||{};
+                  if(!(data.hands||{})[name]?.done){
+                    const meE=Object.entries(data.players||{}).find(([,p])=>p.name===name);
+                    if(meE){
+                      const upd={};
+                      upd[`hands.${name}`]={front:[],mid:[],back:[],done:true,foul:true};
+                      upd[`players.${meE[0]}`]=firebase.firestore.FieldValue.delete();
+                      await db.collection('rooms').doc(roomId).update(upd);
+                    }
+                  }
+                }catch(e){console.warn('auto-foul timeout',e);}
+              }
+            }
+          },5000);
+        }
+      }
+      
       const hasMycards=!!(roomData.deals||{})[myName]?.length;
       if(!hasMycards){
         // ยังไม่มีไพ่ (เพิ่งเข้า/กลับเข้ามากลางรอบ)
