@@ -182,6 +182,8 @@ input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,140,20,.16)
       <div class="chip-row" id="rate-row"></div>
       <div style="margin:13px 0 6px"><label>✂️ คอมมิชชั่น (หักจากยอดที่ชนะ)</label></div>
       <div class="chip-row" id="comm-row"></div>
+      <div style="margin:13px 0 6px"><label>🎮 จำนวนรอบที่เล่น</label></div>
+      <input type="number" id="max-rounds" placeholder="เช่น 5, 10 (0 = ไม่จำกัด)" min="0" max="100" value="0" style="width:100%;padding:9px;border-radius:11px;border:1.5px solid rgba(255,180,80,.2);background:rgba(12,7,3,.5);color:#ffd9a8;font-family:'Kanit',sans-serif;font-size:14px;">
       <button class="btn btn-primary btn-full" id="btn-create-room" style="margin-top:14px" onclick="createRoom()">🎰 สร้างห้อง</button>
       <div class="err" id="room-err"></div>
     </div>
@@ -368,7 +370,7 @@ async function loadRooms(){
       return`<div class="room-row">
         <div class="room-row-info">
           <div class="room-row-name">${r.name||'ห้องเกม'} <span class="room-row-code">#${r.code}</span></div>
-          <div class="room-row-meta">💵 อัตรา <b>${r.rate||1}</b> &nbsp;•&nbsp; ✂️ คอม <b>${r.commission||0}%</b></div>
+          <div class="room-row-meta">💵 อัตรา <b>${r.rate||1}</b> &nbsp;•&nbsp; ✂️ คอม <b>${r.commission||0}%</b> &nbsp;•&nbsp; 🎮 ${r.maxRounds>0?r.maxRounds+' รอบ':'ไม่จำกัด'}</div>
         </div>
         <button class="btn btn-danger" onclick="deleteRoom('${code}','${nm}')">ลบ</button>
       </div>`;
@@ -380,6 +382,7 @@ async function createRoom(){
   clearErr('room-err');
   const name=document.getElementById('room-name').value.trim();
   if(!name){showErr('room-err','กรุณาตั้งชื่อห้องครับ');return;}
+  const maxRounds=parseInt(document.getElementById('max-rounds').value)||0;
   const btn=document.getElementById('btn-create-room');
   btn.disabled=true;btn.textContent='⏳ กำลังสร้าง...';
   try{
@@ -387,10 +390,10 @@ async function createRoom(){
     const snap=await db.collection('admin').doc('data').get();
     const existing=(snap.exists?(snap.data().rooms||[]):[]).filter(r=>r.code);
     let code;do{code=genCode();}while(existing.some(r=>r.code===code));
-    const rec={code,name,rate:selRate,commission:selComm,createdAt:Date.now()};
+    const rec={code,name,rate:selRate,commission:selComm,maxRounds,createdAt:Date.now()};
     // 1) สร้าง room doc (game-room อ่านอันนี้)
     await db.collection('rooms').doc(code).set({
-      name,rate:selRate,commission:selComm,
+      name,rate:selRate,commission:selComm,maxRounds,
       status:'lobby',players:{},round:0,scores:{},
       createdAt:Date.now(),createdByAdmin:true
     });
@@ -398,8 +401,9 @@ async function createRoom(){
     await db.collection('admin').doc('data').set({
       rooms:firebase.firestore.FieldValue.arrayUnion(rec)
     },{merge:true});
-    toast('🎰 สร้างห้อง "'+name+'" แล้ว (#'+code+')');
+    toast('🎰 สร้างห้อง "'+name+'" ('+maxRounds+' รอบ) แล้ว (#'+code+')');
     document.getElementById('room-name').value='';
+    document.getElementById('max-rounds').value='0';
     loadRooms();
   }catch(e){showErr('room-err','สร้างไม่สำเร็จ: '+(e.message||e));}
   finally{btn.disabled=false;btn.textContent='🎰 สร้างห้อง';}

@@ -1003,36 +1003,33 @@ function listen(){
       resultsShown=false;
       renderReadyCheck();
     } else if(st==='playing'){
-      // ── เตะคนไม่จัดไพ่เกิน 3 นาที (host เป็นคนรัน check) ──
-      const amHost=(roomData.players||{})[myId]?.isHost || Object.values(roomData.players||{}).find(p=>p.name===myName)?.isHost;
-      if(amHost){
-        if(arrangeStartTime===null) arrangeStartTime=Date.now();
-        if(!arrangeTimeoutInterval){
-          arrangeTimeoutInterval=setInterval(async()=>{
-            if((roomData.status||'')!=='playing'){ return; }
-            const elapsed=Date.now()-arrangeStartTime;
-            const timeout=180000; // 3 นาที
-            if(elapsed>timeout){
-              const deals=roomData.deals||{}, hands=roomData.hands||{};
-              for(const [name,cards] of Object.entries(deals)){
-                if(!cards.length||(hands[name]?.done)) continue;
-                try{
-                  const snap=await db.collection('rooms').doc(roomId).get();
-                  const data=snap.data()||{};
-                  if(!(data.hands||{})[name]?.done){
-                    const meE=Object.entries(data.players||{}).find(([,p])=>p.name===name);
-                    if(meE){
-                      const upd={};
-                      upd[`hands.${name}`]={front:[],mid:[],back:[],done:true,foul:true};
-                      upd[`players.${meE[0]}`]=firebase.firestore.FieldValue.delete();
-                      await db.collection('rooms').doc(roomId).update(upd);
-                    }
+      // ── เตะคนไม่จัดไพ่เกิน 3 นาที (ทุกคลายรัน check อัตโนมัติ) ──
+      if(arrangeStartTime===null) arrangeStartTime=Date.now();
+      if(!arrangeTimeoutInterval){
+        arrangeTimeoutInterval=setInterval(async()=>{
+          if((roomData.status||'')!=='playing'){ return; }
+          const elapsed=Date.now()-arrangeStartTime;
+          const timeout=180000; // 3 นาที
+          if(elapsed>timeout){
+            const deals=roomData.deals||{}, hands=roomData.hands||{};
+            for(const [name,cards] of Object.entries(deals)){
+              if(!cards.length||(hands[name]?.done)) continue;
+              try{
+                const snap=await db.collection('rooms').doc(roomId).get();
+                const data=snap.data()||{};
+                if(!(data.hands||{})[name]?.done){
+                  const meE=Object.entries(data.players||{}).find(([,p])=>p.name===name);
+                  if(meE){
+                    const upd={};
+                    upd[`hands.${name}`]={front:[],mid:[],back:[],done:true,foul:true};
+                    upd[`players.${meE[0]}`]=firebase.firestore.FieldValue.delete();
+                    await db.collection('rooms').doc(roomId).update(upd);
                   }
-                }catch(e){console.warn('auto-foul timeout',e);}
-              }
+                }
+              }catch(e){console.warn('auto-foul timeout',e);}
             }
-          },5000);
-        }
+          }
+        },5000);
       }
       
       const hasMycards=!!(roomData.deals||{})[myName]?.length;
@@ -1087,32 +1084,31 @@ function autoCheckDone(){
 // ── LOBBY ──
 function renderLobby(){
   const players=Object.entries(roomData.players||{});
-
-  // ตรวจ isHost ใหม่ทุกครั้ง — หาจาก myId หรือชื่อ
-  const me=roomData.players?.[myId]
-    ||Object.values(roomData.players||{}).find(p=>p.name===myName);
-  if(me){
-    myAvatar=me.avatar||myAvatar;
-    isHost=me.isHost||false;
-  }
   document.getElementById('lob-cnt').textContent=players.length+' คน';
   document.getElementById('lob-players').innerHTML=players.map(([id,p])=>`
     <div class="pl-item">
       <div class="pl-av">${p.avatar||'🎴'}</div>
       <div class="pl-name">${p.name}${p.name===myName?' (คุณ)':''}</div>
-      <div class="pl-badge ${p.isHost?'b-host':'b-wait'}">${p.isHost?'🎯 Host':'⏳ รอ'}</div>
+      <div class="pl-badge b-wait">⏳ เล่น</div>
     </div>`).join('');
-  const btn=document.getElementById('btn-start');
-  const amHost=isHost||Object.values(roomData.players||{}).find(p=>p.name===myName)?.isHost||false;
-  if(amHost){
-    btn.style.display='block';
-    document.getElementById('lob-status').textContent=`กด "เริ่มเกม" เมื่อพร้อม (${players.length} คน)`;
+  
+  // ถ้าจำนวนผู้เล่น ≥ 2 → auto-start ready-check
+  const activePlayers=players.filter(([,p])=>!p.isQueue);
+  if(activePlayers.length>=2){
+    document.getElementById('lob-status').innerHTML='✅ พร้อมเล่น!<br><span style="font-size:11px;color:#c8a860">รอการยืนยันความพร้อม...</span>';
+    // trigger auto-start ready-check ถ้า status ยังเป็น lobby
+    if((roomData.status||'')=='lobby'){
+      autoStartReadyCheck();
+    }
   } else {
-    btn.style.display='none';
-    document.getElementById('lob-status').textContent='รอ Host กด "เริ่มเกม" — หรือกดขอเป็นหัวห้องถ้า Host ไม่อยู่';
+    document.getElementById('lob-status').textContent='⏳ รอคนเข้าห้อง (ต้องอย่างน้อย 2 คน)';
   }
+  
+  // ซ่อนปุ่มเริ่มเกม + ขอเป็นหัวห้อง
+  const btn=document.getElementById('btn-start');
+  if(btn) btn.style.display='none';
   const claimBtn=document.getElementById('btn-claim-host');
-  if(claimBtn) claimBtn.style.display=amHost?'none':'block';
+  if(claimBtn) claimBtn.style.display='none';
   const rcBtn=document.getElementById('btn-ready-confirm');
   if(rcBtn) rcBtn.style.display='none';
 }
@@ -1133,24 +1129,34 @@ async function claimHost(){
   }catch(e){alert('ไม่สำเร็จ: '+(e.message||e));}
 }
 
+// ── เริ่มเกมอัตโนมัติเมื่อมี ≥2 คน ──
+async function autoStartReadyCheck(){
+  try{
+    const snap=await db.collection('rooms').doc(roomId).get();
+    const data=snap.data()||{};
+    if((data.status||'')!=='lobby') return;  // ถ้าไม่ใช่ lobby แล้ว ข้าม
+    
+    const entries=Object.entries(data.players||{});
+    const activePlayers=entries.filter(([,p])=>!p.isQueue);
+    if(activePlayers.length<2) return;  // ต้อง ≥2 คน
+    
+    // เริ่มถามความพร้อม 30 วินาที — รักษาสถานะ ready ที่มีอยู่ (ไม่รีเซ็ต)
+    finalizingReady=false;
+    const updates={status:'readycheck',readyAt:Date.now(),kicked:{}};
+    entries.forEach(([id,p])=>{
+      if(p.isQueue) return;
+      // เก็บสถานะ ready ที่มีอยู่ (ไม่รีเซ็ตใหม่)
+      if(p.ready===undefined || p.ready===false){
+        updates['players.'+id+'.ready']=false;  // ถ้ายังไม่พร้อม ให้รอ
+      }
+      // ถ้า ready=true อยู่แล้ว ไม่ต้องเขียน (ให้เก็บไว้อย่างเดิม)
+    });
+    await db.collection('rooms').doc(roomId).update(updates);
+  }catch(e){console.warn('autoStartReadyCheck',e);}
+}
+
 async function hostStart(){
-  // ดึงข้อมูลสดจาก Firebase เสมอ ไม่ต้องอิง isHost ที่ cache ไว้
-  const snap=await db.collection('rooms').doc(roomId).get();
-  const data=snap.data()||{};
-  const entries=Object.entries(data.players||{});
-  const me=entries.find(([id,p])=>p.name===myName);
-  if(!me){alert('ไม่พบข้อมูลของคุณในห้องครับ');return;}
-  if(!me[1].isHost){alert('คุณไม่ใช่ Host ครับ');return;}
-  const playEntries=entries.filter(([id,p])=>!p.isQueue);
-  if(playEntries.length<2){alert('ต้องมีผู้เล่นอย่างน้อย 2 คน');return;}
-  // ── เริ่มถามความพร้อม 30 วินาที (host พร้อมอัตโนมัติ, คนอื่นต้องกดยืนยัน) ──
-  finalizingReady=false;
-  const updates={status:'readycheck',readyAt:Date.now(),kicked:{}};
-  entries.forEach(([id,p])=>{
-    if(p.isQueue) return;
-    updates['players.'+id+'.ready']=(id===me[0]); // host พร้อมเลย, คนอื่น false
-  });
-  await db.collection('rooms').doc(roomId).update(updates);
+  // ไม่ใช้แล้ว — ถูกแทนที่ด้วย autoStartReadyCheck
 }
 
 // ผู้เล่นกดยืนยันพร้อม
@@ -1226,7 +1232,7 @@ function renderReadyCheck(){
     rb.textContent=iAmReady?'✅ พร้อมแล้ว':'✅ ฉันพร้อม!';
     // host เป็นคนสรุป: หมดเวลา หรือ ทุกคนพร้อม
     const allReady=players.length>=2&&players.every(([id,p])=>p.ready);
-    if(meP.isHost&&(left<=0||allReady)) finalizeReadyCheck();
+    if(left<=0||allReady) finalizeReadyCheck();
   };
   draw();
   if(readyTick) clearInterval(readyTick);
@@ -1804,6 +1810,13 @@ async function nextRound(){
   const needChip=35*(roomData.rate||1);
   if(myMemberId&&myChips<needChip){
     alert('🪙 ชิบไม่พอเล่นรอบต่อไปครับ\n\nชิบเหลือ '+myChips+' • ขั้นต่ำห้องนี้ '+needChip+'\nกรุณาให้แอดมินเติมชิบก่อน\n\nระบบจะพากลับไปล็อบบี้');
+    leaveRoom();
+    return;
+  }
+  // ตรวจจำนวนรอบ — ถ้าครบแล้ว ให้ปิดห้อง
+  const maxRounds=roomData.maxRounds||0;
+  if(maxRounds>0&&(roomData.round||0)>=maxRounds){
+    alert('🎉 เสร็จสิ้น!\n\nห้องนี้เล่นไปแล้ว '+maxRounds+' รอบ ตามที่กำหนด\n\nระบบจะพากลับไปล็อบบี้');
     leaveRoom();
     return;
   }
