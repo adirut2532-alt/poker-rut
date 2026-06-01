@@ -354,6 +354,24 @@ html,body{
 .res-total{font-size:22px;font-weight:900;}
 .res-rows{display:flex;gap:5px;font-size:11px;color:#c8a860;flex-wrap:wrap;margin-top:4px;}
 .res-tag{background:rgba(200,160,40,.15);padding:2px 7px;border-radius:6px;color:#f0c040;border:1px solid rgba(200,160,40,.3);}
+/* ── คะแนนแต่ละชั้น ── */
+.res-rowsc{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,220,80,.15);}
+.res-rowsc .rsc{font-size:11px;font-weight:700;color:#c8a860;background:rgba(0,0,0,.25);padding:2px 8px;border-radius:6px;border:1px solid rgba(255,220,80,.12);}
+.res-rowsc .rsc b{font-weight:900;margin-left:3px;}
+.res-rowsc .rsc.glow{border-color:rgba(255,205,90,.85);background:rgba(150,110,20,.18);animation:rscGlow 1.4s ease-in-out infinite;}
+@keyframes rscGlow{0%,100%{box-shadow:0 0 5px 1px rgba(255,200,80,.45);}50%{box-shadow:0 0 14px 4px rgba(255,215,110,.9);}}
+/* ── แบนเนอร์แจ้งเตือนเด้งโบนัส ── */
+.bonus-banner{
+  background:linear-gradient(135deg,rgba(255,200,80,.22),rgba(200,160,40,.10));
+  border:1.5px solid rgba(255,205,90,.7);border-radius:14px;
+  padding:12px 14px;margin-bottom:12px;text-align:center;
+  box-shadow:0 0 18px rgba(255,200,80,.35);
+  animation:bnGlow 1.8s ease-in-out infinite;
+}
+@keyframes bnGlow{0%,100%{box-shadow:0 0 12px rgba(255,200,80,.3);}50%{box-shadow:0 0 26px rgba(255,215,110,.6);}}
+.bonus-banner-ttl{font-weight:900;color:#ffd25e;font-size:15px;margin-bottom:7px;letter-spacing:.5px;}
+.bonus-banner-row{color:#ffe2a0;font-size:13px;font-weight:700;line-height:1.7;}
+.bonus-banner-row b{color:#ffd25e;font-weight:900;}
 
 /* GHOST CARD */
 #ghost-card{
@@ -1687,17 +1705,66 @@ function renderResults(players,handsById,scores){  document.getElementById('res-
   const darby=scores.find(s=>s.isDarby);
   if(darby) announceText('ดาร์บี้สิคร้าบ');
   const darbyHTML=darby?`<div class="darby-banner">🏆 ดาร์บี้! ${darby.avatar} ${darby.name} กินรวดทุกกอง ทุกคน! (คะแนน x4)</div>`:'';
-  document.getElementById('res-list').innerHTML=darbyHTML+sorted.map((s,i)=>{
+
+  const ROWS=[['front','หน้า'],['mid','กลาง'],['back','หลัง']];
+
+  // ── คำนวณคะแนน "แต่ละชั้น" ของผู้เล่นคนหนึ่ง (เทียบกับทุกคู่ต่อสู้ที่ไม่ฟาว, รวมเด้ง) ──
+  function rowScoreFor(pName,rowKey){
+    const ph=handsById[pName]||{};
+    if(ph.foul) return null;
+    let total=0;
+    players.forEach(q=>{
+      if(q.name===pName) return;
+      const qh=handsById[q.name]||{};
+      if(qh.foul) return;
+      const cv=cmpH(ph[rowKey]||[],qh[rowKey]||[]);
+      const bp=bonus(ph[rowKey]||[],rowKey).pts;
+      const bq=bonus(qh[rowKey]||[],rowKey).pts;
+      if(cv>0) total+=bp>0?bp:1;
+      else if(cv<0) total-=bq>0?bq:1;
+    });
+    return total;
+  }
+
+  // ── รวบรวมเด้งโบนัสของทุกคนทุกชั้น สำหรับแบนเนอร์แจ้งเตือน ──
+  const bonusEvents=[];
+  players.forEach(p=>{
+    const ph=handsById[p.name]||{};
+    if(ph.foul) return;
+    ROWS.forEach(([k,lbl])=>{
+      const bn=bonus(ph[k]||[],k);
+      if(bn.pts>0) bonusEvents.push({name:p.name,avatar:p.avatar,label:bn.label,row:lbl});
+    });
+  });
+  const bonusHTML=bonusEvents.length?`<div class="bonus-banner">
+      <div class="bonus-banner-ttl">✨ มีเด้งโบนัส! ✨</div>
+      ${bonusEvents.map(e=>`<div class="bonus-banner-row">${e.avatar} ${e.name}${e.name===myName?' (คุณ)':''} — <b>${e.label}</b> (ชั้น${e.row})</div>`).join('')}
+    </div>`:'';
+
+  document.getElementById('res-list').innerHTML=darbyHTML+bonusHTML+sorted.map((s,i)=>{
     const medals=['🥇','🥈','🥉','4️⃣'];
     const pos=s.roundScore>=0;
     const h=handsById[s.name]||{};
     const tags=[`หน้า: ${evalHand(h.front||[]).name}`,`กลาง: ${evalHand(h.mid||[]).name}`,`หลัง: ${evalHand(h.back||[]).name}`];
+    // ── แถบคะแนนแต่ละชั้น ──
+    let rowScHTML='';
+    if(!h.foul){
+      rowScHTML=`<div class="res-rowsc">${ROWS.map(([k,lbl])=>{
+        const sc=rowScoreFor(s.name,k);
+        const bn=bonus(h[k]||[],k);
+        const col=sc>0?'#40e880':sc<0?'#ff6060':'#c8a860';
+        const glow=bn.pts>0?' glow':'';
+        const star=bn.pts>0?' ⚡':'';
+        return `<span class="rsc${glow}">${lbl}<b style="color:${col}">${sc>0?'+':''}${sc}</b>${star}</span>`;
+      }).join('')}</div>`;
+    }
     return`<div class="res-card">
       <div class="res-nm">
         <span>${medals[i]||''} ${s.avatar} ${s.name}${s.name===myName?' (คุณ)':''}</span>
         <span class="res-total ${pos?'pos':'neg'}">${pos?'+':''}${s.roundScore}</span>
       </div>
       <div class="res-rows">${tags.map(t=>`<span class="res-tag">${t}</span>`).join('')}${s.bonusLabel?`<span class="res-tag">⭐ ${s.bonusLabel}</span>`:''}</div>
+      ${rowScHTML}
     </div>`;
   }).join('');
 
