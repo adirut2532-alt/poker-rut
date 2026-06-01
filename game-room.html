@@ -312,6 +312,15 @@ html,body{
 .fwin{background:rgba(20,180,80,.25);color:#40e880;border:1px solid rgba(20,180,80,.4);}
 .flose{background:rgba(220,32,32,.2);color:#ff6060;border:1px solid rgba(220,32,32,.35);}
 .fdraw{background:rgba(200,160,40,.15);color:#f0c040;}
+/* ── เด้งโบนัสหน้า battle: ขอบทองวิ้งวิ้ง + ป้าย ── */
+.fight-line.glow{background:rgba(150,110,20,.10);border:2px solid rgba(255,205,90,.75);border-radius:12px;padding:8px 6px;animation:fglow 1.4s ease-in-out infinite;}
+@keyframes fglow{0%,100%{box-shadow:0 0 6px 1px rgba(255,200,80,.5);}50%{box-shadow:0 0 18px 5px rgba(255,215,110,.95);}}
+.fbonus{font-size:10px;font-weight:900;color:#3a2a00;background:linear-gradient(180deg,#ffe08a,#f5b942);border:1px solid #ffcf5e;border-radius:6px;padding:2px 7px;box-shadow:0 0 8px rgba(255,200,80,.6);}
+.frsc{font-size:16px;font-weight:900;line-height:1;}
+.b-bonus-banner{background:linear-gradient(135deg,rgba(255,200,80,.22),rgba(200,160,40,.10));border:1.5px solid rgba(255,205,90,.7);border-radius:14px;padding:12px 14px;margin-bottom:10px;text-align:center;box-shadow:0 0 18px rgba(255,200,80,.35);animation:fglow 1.8s ease-in-out infinite;}
+.b-bonus-ttl{font-weight:900;color:#ffd25e;font-size:15px;margin-bottom:6px;}
+.b-bonus-row{color:#ffe2a0;font-size:13px;font-weight:700;line-height:1.6;}
+.b-bonus-row b{color:#ffd25e;font-weight:900;}
 
 .talu-banner{
   background:rgba(220,32,32,.2);border:2px solid #e03030;
@@ -1795,29 +1804,57 @@ function showBattle(players,handsById,scores){
   const rowLabel={front:'หน้า',mid:'กลาง',back:'หลัง'};
 
   let html='';
+
+  // ── แบนเนอร์แจ้งเตือนเด้งโบนัส (รวมทุกคนทุกชั้น) ──
+  const bEvents=[];
+  players.forEach(p=>{
+    const ph=handsById[p.name]||{};
+    if(ph.foul) return;
+    [['front','หน้า'],['mid','กลาง'],['back','หลัง']].forEach(([k,lbl])=>{
+      const bn=bonus(ph[k]||[],k);
+      if(bn.pts>0) bEvents.push({name:p.name,avatar:p.avatar,label:bn.label,row:lbl});
+    });
+  });
+  if(bEvents.length){
+    html+=`<div class="b-bonus-banner">
+      <div class="b-bonus-ttl">✨ มีเด้งโบนัส! ✨</div>
+      ${bEvents.map(e=>`<div class="b-bonus-row">${e.avatar} ${e.name}${e.name===myName?' (คุณ)':''} — <b>${e.label}</b> (ชั้น${e.row})</div>`).join('')}
+    </div>`;
+  }
+
   matchups.forEach((m,mi)=>{
+    const noFoul=!m.ha.foul&&!m.hb.foul;
     const rowsHTML=m.rowResults.map(r=>{
       const aBadge=r.winner>0?'fwin':r.winner<0?'flose':'fdraw';
       const bBadge=r.winner<0?'fwin':r.winner>0?'flose':'fdraw';
       const aTxt=r.winner>0?'ชนะ':r.winner<0?'แพ้':'เสมอ';
       const bTxt=r.winner<0?'ชนะ':r.winner>0?'แพ้':'เสมอ';
-      // ─ เพิ่มคะแนนแต่ละชั้น ─
-      const aScore=evalHand(r.aCards);
-      const bScore=evalHand(r.bCards);
-      const aScoreTxt=`${aScore.name}${aScore.bonus?` +${aScore.bonus}`:''}`;
-      const bScoreTxt=`${bScore.name}${bScore.bonus?` +${bScore.bonus}`:''}`;
-      return`<div class="fight-line">
+      // ── เด้งโบนัสจริง (ใช้ bonus() ไม่ใช่ evalHand) ──
+      const ba=bonus(r.aCards,r.key), bb=bonus(r.bCards,r.key);
+      const glow=noFoul&&(ba.pts>0||bb.pts>0)?' glow':'';
+      // ── คะแนนชั้นนี้ (1v1; ผู้ชนะได้แต้มเด้งถ้ามี ไม่งั้น 1) ──
+      let aP=0,bP=0;
+      if(noFoul){
+        if(r.winner>0){aP=ba.pts>0?ba.pts:1;bP=-aP;}
+        else if(r.winner<0){bP=bb.pts>0?bb.pts:1;aP=-bP;}
+      }
+      const sc=(p)=>`<span class="frsc" style="color:${p>0?'#40e880':p<0?'#ff6060':'#c8a860'}">${p>0?'+':''}${p}</span>`;
+      const aBn=ba.pts>0?`<div class="fbonus">⚡ ${ba.label}</div>`:'';
+      const bBn=bb.pts>0?`<div class="fbonus">⚡ ${bb.label}</div>`:'';
+      return`<div class="fight-line${glow}">
         <div class="fight-p">
           <div class="fight-cards">${r.aCards.map(fightCardHTML).join('')}</div>
           <div class="fight-hn">${r.aName||'-'}</div>
-          <div style="font-size:10px;color:#c8a860;margin-bottom:4px">${aScoreTxt}</div>
+          ${aBn}
+          ${noFoul?sc(aP):''}
           <div class="rbadge ${aBadge}">${aTxt}</div>
         </div>
         <div class="fight-vs">${rowLabel[r.key]}</div>
         <div class="fight-p">
           <div class="fight-cards">${r.bCards.map(fightCardHTML).join('')}</div>
           <div class="fight-hn">${r.bName||'-'}</div>
-          <div style="font-size:10px;color:#c8a860;margin-bottom:4px">${bScoreTxt}</div>
+          ${bBn}
+          ${noFoul?sc(bP):''}
           <div class="rbadge ${bBadge}">${bTxt}</div>
         </div>
       </div>`;
